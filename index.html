@@ -320,7 +320,7 @@
       st.throttle=Math.max(0,Math.min(1,st.throttle+tIn*0.5*dt));st.boost+=(((keys[' ']?1:0))-st.boost)*Math.min(1,dt*4);
       // Pitch/roll rates are framerate-based and scale-independent, so the hand-feel is unchanged.
       st.pitch+=pIn*0.9*dt;st.pitch-=st.pitch*0.6*dt;st.pitch=Math.max(-0.7,Math.min(0.7,st.pitch));
-      st.roll+=rIn*1.6*dt;st.roll-=st.roll*1.2*dt;st.roll=Math.max(-1.1,Math.min(1.1,st.roll));st.heading+=-st.roll*0.6*dt;
+      st.roll+=rIn*1.6*dt;st.roll-=st.roll*1.2*dt;st.roll=Math.max(-1.1,Math.min(1.1,st.roll));st.heading+=st.roll*0.6*dt;
       var tgt=MINS+(MAXS-MINS)*st.throttle+st.boost*70;st.speed+=(tgt-st.speed)*Math.min(1,dt*1.5);
       var euler=new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'),q=new THREE.Quaternion().setFromEuler(euler),fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
       st.pos.addScaledVector(fwd,st.speed*dt);
