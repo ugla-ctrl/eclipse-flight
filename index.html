@@ -258,6 +258,8 @@
   // beacon), plus a bright pin on the corner minimap so it's always easy to locate. emblemTex()
   // stays the swap point for a real festival logo (used on the minimap pin).
   var FEST={x:-1610,z:-7570};                          // Hellissandur festival site (64.918°N, 23.884°W) — the Earth Studio coordinate
+  var logoTex=new THREE.TextureLoader().load('assets/iceland-eclipse-logo.png'); // festival logo for the spinning coin
+  var festCoin=null;                                                             // upright logo coin, spun in the loop
   var miniCam=null, playerArrow=null, fRingMat=null;   // minimap camera + live player marker + pulsing ring
   var mapMW=232, mapMH=150, mapMX=14, mapMY=46;        // rectangular minimap + corner offsets (set in rz)
   function emblemTex(){
@@ -277,6 +279,10 @@
     fRingMat=ring(150,184,0.55);   // outer ring (gently pulses)
     ring(72,88,0.5);               // inner ring
     ring(0,150,0.07);              // soft fill
+    // the logo as an upright "coin" floating in the centre, spun slowly about its vertical axis
+    festCoin=new THREE.Group();festCoin.position.set(0,86,0);
+    festCoin.add(new THREE.Mesh(new THREE.PlaneGeometry(140,140),new THREE.MeshBasicMaterial({map:logoTex,transparent:true,depthWrite:false,side:THREE.DoubleSide})));
+    grp.add(festCoin);
     scene.add(grp);
   }
   // Corner minimap: a tilted top-down camera over the whole peninsula, plus bright layer-1 markers
@@ -399,6 +405,7 @@
       phE.textContent=totality>0.85?'totality':(coverage>0.5?'deep partial':(phase<0.5?'first contact':'fourth contact'));phE.style.opacity=0.5+0.5*coverage;
     }
     if(fRingMat)fRingMat.opacity=0.34+0.22*Math.sin(now*0.0022);   // festival ring pulse
+    if(festCoin)festCoin.rotation.y=now*0.0005;                    // logo coin: slow horizontal spin
     renderer.render(scene,camera);
     // --- corner minimap: second pass from the top-down camera into the lower-left viewport ---
     if(started&&miniCam){
