@@ -57,6 +57,12 @@
   <audio id="bgm" loop preload="auto" src="assets/soundtrack.mp3"></audio>
   <button id="f-mute" aria-label="toggle music" title="music on / off" style="position:absolute;top:16px;right:18px;z-index:6;pointer-events:auto;width:34px;height:34px;border-radius:50%;background:rgba(5,6,10,.5);border:1px solid rgba(124,252,180,.4);color:#7CFCB4;font-size:15px;line-height:30px;text-align:center;cursor:pointer;padding:0">🔊</button>
 
+  <!-- Win overlay: shown when the plane lands on the festival logo -->
+  <div id="f-win" style="position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:64px;color:#fff;text-shadow:0 0 34px rgba(255,190,70,.85),0 2px 18px rgba(0,0,0,.65);line-height:1.05">You landed<br>on the Eclipse</div>
+    <div style="margin-top:20px;color:#ffe9b8;font-size:12px;letter-spacing:.34em;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.85)">✦ you win ✦&nbsp;&nbsp;&nbsp;tap or press R to fly again</div>
+  </div>
+
   <!-- Start overlay; the button stays "loading terrain…" until the DEM is decoded -->
   <div id="f-start" style="position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,6,10,.82);text-align:center;cursor:pointer">
     <div id="f-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:56px;color:#f4f1ea">Iceland Eclipse Flight</div>
@@ -263,6 +269,9 @@
   var FEST={x:-1254,z:-6957};                          // festival grounds — flat coastal fields ESE of Hellissandur, off the town (≈64.9125°N, 23.8765°W)
   var logoTex=new THREE.TextureLoader().load('assets/iceland-eclipse-logo.png'); // festival logo for the spinning coin
   var festCoin=null;                                                             // upright logo coin, spun in the loop
+  var won=false, winPos=new THREE.Vector3(), LAND_R=240, LAND_ALT=44;            // land-on-the-logo win: horizontal radius + altitude-above-ground thresholds
+  var FW_COLORS=[[2.2,1.5,0.5],[2.4,0.5,0.4],[0.5,2.2,0.8],[0.5,1.4,2.4],[2.2,0.6,1.8],[2.4,2.4,2.2],[2.4,1.2,0.3],[2.2,0.9,1.5]];
+  var fw={pts:null,geo:null,pos:null,col:null,parts:[],max:6500,cursor:0,t:0,last:0,gy:0};
   var miniCam=null, playerArrow=null, fRingMat=null;   // minimap camera + live player marker + pulsing ring
   var mapMW=232, mapMH=150, mapMX=14, mapMY=46;        // rectangular minimap + corner offsets (set in rz)
   function emblemTex(){
@@ -312,7 +321,7 @@
   var st={pos:SPAWN.clone(),heading:0,pitch:-0.02,roll:0,throttle:0.4,speed:80,boost:0,ecl:0};
   var MINS=55,MAXS=130,keys={};   // metres/second — at 1 unit = 1 m the HUD shows true ground speed
 
-  function resetFlight(){st.pos.copy(SPAWN);st.heading=faceGlacier;st.pitch=-0.02;st.roll=0;st.throttle=0.4;st.speed=80;st.ecl=0;}
+  function resetFlight(){st.pos.copy(SPAWN);st.heading=faceGlacier;st.pitch=-0.02;st.roll=0;st.throttle=0.4;st.speed=80;st.ecl=0;won=false;var we=document.getElementById('f-win');if(we)we.style.display='none';fwClear();}
 
   // Seat the spawn over Hellissandur, nose pointed at Snæfellsjökull (both from the baked coords).
   function setSpawn(){
@@ -331,7 +340,7 @@
 
   // ---- touch steering (mobile) — drag anywhere to pitch/bank; desktop keyboard is untouched ----
   var touch={active:false,px:0,py:0,ox:0,oy:0,ref:200};
-  function tStart(e){var t=e.touches[0];if(!t)return;touch.active=true;touch.ox=t.clientX;touch.oy=t.clientY;touch.px=0;touch.py=0;touch.ref=(Math.min(window.innerWidth,window.innerHeight)*0.28)||200;e.preventDefault();}
+  function tStart(e){var t=e.touches[0];if(!t)return;if(won){resetFlight();e.preventDefault();return;}touch.active=true;touch.ox=t.clientX;touch.oy=t.clientY;touch.px=0;touch.py=0;touch.ref=(Math.min(window.innerWidth,window.innerHeight)*0.28)||200;e.preventDefault();}
   function tMove(e){if(!touch.active)return;var t=e.touches[0];if(!t)return;touch.px=-Math.max(-1,Math.min(1,(t.clientX-touch.ox)/touch.ref));touch.py=-Math.max(-1,Math.min(1,(t.clientY-touch.oy)/touch.ref));e.preventDefault();}
   function tEnd(){touch.active=false;touch.px=0;touch.py=0;}
   canvas.addEventListener('touchstart',tStart,{passive:false});
@@ -361,7 +370,7 @@
 
   var startElClick=function(){if(!demReady)return;started=true;startEl.style.display='none';canvas.focus();if(bgm){bgm.volume=0.5;bgm.play().catch(function(){});}};
   startEl.addEventListener('click',startElClick);
-  canvas.addEventListener('click',function(){canvas.focus();});
+  canvas.addEventListener('click',function(){canvas.focus();if(won)resetFlight();});
   if(muteBtn) muteBtn.addEventListener('click',function(e){e.stopPropagation();if(!bgm)return;bgm.muted=!bgm.muted;muteBtn.textContent=bgm.muted?'🔇':'🔊';muteBtn.style.color=bgm.muted?'#5a6b62':'#7CFCB4';});
   // mobile: replace the keyboard hints with a touch instruction
   if(window.matchMedia&&matchMedia('(pointer:coarse)').matches){
@@ -372,23 +381,60 @@
   // ---------------------------------------------------------------- main loop
   var hE=document.getElementById('f-hdg'),sE=document.getElementById('f-spd'),aE=document.getElementById('f-alt'),tE=document.getElementById('f-thr'),phE=document.getElementById('f-phase');
   function smooth(a,b,x){x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x);}
+  // ---------------------------------------------------------------- fireworks (win celebration)
+  function sparkTex(){var c=document.createElement('canvas');c.width=c.height=64;var x=c.getContext('2d');var g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.28,'rgba(255,255,255,0.85)');g.addColorStop(0.6,'rgba(255,255,255,0.22)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);var t=new THREE.Texture(c);t.needsUpdate=true;return t;}
+  function buildFireworks(){
+    fw.pos=new Float32Array(fw.max*3); fw.col=new Float32Array(fw.max*3);
+    fw.geo=new THREE.BufferGeometry();
+    fw.geo.setAttribute('position',new THREE.BufferAttribute(fw.pos,3));
+    fw.geo.setAttribute('color',new THREE.BufferAttribute(fw.col,3));
+    fw.geo.setDrawRange(0,0);
+    fw.pts=new THREE.Points(fw.geo,new THREE.PointsMaterial({size:56,map:sparkTex(),vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));
+    fw.pts.frustumCulled=false; fw.pts.layers.set(2); scene.add(fw.pts);   // layer 2 = main view only (never in the minimap)
+    for(var i=0;i<fw.max;i++)fw.parts.push({life:0,ml:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,r:0,g:0,b:0});
+    fw.gy=H(FEST.x,FEST.z);
+  }
+  function fwBurst(cx,cy,cz,col,n,sp){
+    for(var i=0;i<n;i++){var p=fw.parts[fw.cursor++ % fw.max];
+      var th=Math.random()*6.283, ph=Math.acos(2*Math.random()-1), s=sp*(0.35+Math.random()*0.75);
+      p.x=cx;p.y=cy;p.z=cz;
+      p.vx=Math.sin(ph)*Math.cos(th)*s; p.vy=Math.cos(ph)*s; p.vz=Math.sin(ph)*Math.sin(th)*s;
+      p.r=col[0];p.g=col[1];p.b=col[2]; p.ml=1.1+Math.random()*1.2; p.life=p.ml;
+    }
+  }
+  function fwShoot(){ var b=winPos, c=FW_COLORS[(Math.random()*FW_COLORS.length)|0]; fwBurst(b.x+(Math.random()-0.5)*1600, fw.gy+320+Math.random()*1200, b.z+(Math.random()-0.5)*1600, c, 200, 320); }
+  function fwVolley(){ for(var k=0;k<10;k++)fwShoot(); fw.t=0; fw.last=0; }
+  function fwStep(dt,now){
+    fw.t+=dt;
+    if(fw.t-fw.last>0.19){ fw.last=fw.t; fwShoot(); fwShoot(); if(Math.random()<0.5)fwShoot(); }
+    var pos=fw.pos,col=fw.col,k=0,GR=150;
+    for(var i=0;i<fw.max;i++){var p=fw.parts[i]; if(p.life<=0)continue; p.life-=dt; if(p.life<=0)continue;
+      p.vy-=GR*dt; p.vx*=0.986;p.vy*=0.99;p.vz*=0.986; p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
+      var a=(p.life/p.ml)*(0.62+0.38*Math.sin(now*0.03+i));      // fade + per-spark twinkle
+      pos[k*3]=p.x;pos[k*3+1]=p.y;pos[k*3+2]=p.z; col[k*3]=p.r*a;col[k*3+1]=p.g*a;col[k*3+2]=p.b*a; k++;
+    }
+    fw.geo.setDrawRange(0,k); fw.geo.attributes.position.needsUpdate=true; fw.geo.attributes.color.needsUpdate=true;
+  }
+  function fwClear(){ for(var i=0;i<fw.parts.length;i++)fw.parts[i].life=0; if(fw.geo)fw.geo.setDrawRange(0,0); }
+
   var last=performance.now();
   function loop(now){var dt=Math.min((now-last)/1000,0.05);last=now;
     if(started){
+      if(!won){
       var pIn=(keys['arrowup']?1:0)-(keys['arrowdown']?1:0),rIn=(keys['arrowleft']?1:0)-(keys['arrowright']?1:0),tIn=(keys['w']?1:0)-(keys['s']?1:0);
       if(touch.active){pIn=touch.py;rIn=touch.px;} // mobile: finger drag steers pitch + bank
       st.throttle=Math.max(0,Math.min(1,st.throttle+tIn*0.5*dt));st.boost+=(((keys[' ']?1:0))-st.boost)*Math.min(1,dt*4);
-      // Pitch/roll rates are framerate-based and scale-independent, so the hand-feel is unchanged.
       st.pitch+=pIn*0.9*dt;st.pitch-=st.pitch*0.6*dt;st.pitch=Math.max(-0.7,Math.min(0.7,st.pitch));
       st.roll+=rIn*1.6*dt;st.roll-=st.roll*1.2*dt;st.roll=Math.max(-1.1,Math.min(1.1,st.roll));st.heading+=st.roll*0.6*dt;
       var tgt=MINS+(MAXS-MINS)*st.throttle+st.boost*70;st.speed+=(tgt-st.speed)*Math.min(1,dt*1.5);
-      var euler=new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'),q=new THREE.Quaternion().setFromEuler(euler),fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
-      st.pos.addScaledVector(fwd,st.speed*dt);
-      // Terrain collision via the shared H(): the plane follows the real slope, mesh and physics in lockstep.
+      st.pos.addScaledVector(new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'))),st.speed*dt);
       var g=H(st.pos.x,st.pos.z),minY=Math.max(g+22,18);if(st.pos.y<minY){st.pos.y=minY;if(st.pitch<0.05)st.pitch+=1.2*dt;}
-      // Real terrain can't tile, so instead of wrapping we ease the heading back toward centre over open ocean.
+      // WIN — a gentle landing inside the festival ring: no crash, just touch down on the logo
+      var wdx=st.pos.x-FEST.x,wdz=st.pos.z-FEST.z;if((wdx*wdx+wdz*wdz)<LAND_R*LAND_R&&(st.pos.y-g)<LAND_ALT){won=true;st.speed=0;winPos.copy(st.pos);var we=document.getElementById('f-win');if(we)we.style.display='flex';fwVolley();}
       var B=19000;if(Math.hypot(st.pos.x,st.pos.z)>B){var want=Math.atan2(st.pos.x,st.pos.z),diff=want-st.heading;while(diff>Math.PI)diff-=2*Math.PI;while(diff<-Math.PI)diff+=2*Math.PI;st.heading+=diff*Math.min(1,dt*0.6);}
+      }
       if(keys['r'])resetFlight();
+      var euler=new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'),q=new THREE.Quaternion().setFromEuler(euler),fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
       plane.position.copy(st.pos);plane.quaternion.copy(q);
       var camPos=st.pos.clone().add(new THREE.Vector3(0,9,46).applyQuaternion(q));
       camera.position.lerp(camPos,Math.min(1,dt*4));camera.lookAt(st.pos.clone().add(fwd.clone().multiplyScalar(60)));camera.up.set(0,1,0);
@@ -409,6 +455,7 @@
     }
     if(fRingMat)fRingMat.opacity=0.34+0.22*Math.sin(now*0.0022);   // festival ring pulse
     if(festCoin)festCoin.rotation.y=now*0.0005;                    // logo coin: slow horizontal spin
+    if(won)fwStep(dt,now);                                         // grand fireworks while the win screen is up
     renderer.render(scene,camera);
     // --- corner minimap: second pass from the top-down camera into the lower-left viewport ---
     if(started&&miniCam){
@@ -431,7 +478,7 @@
 
   // ---------------------------------------------------------------- boot
   loadHeightmap(function(ok){
-    if(ok){buildTerrain();setSpawn();buildFestivalMarker();buildMinimap();var a=document.getElementById('f-attr');if(a)a.textContent='imagery © esri, maxar, earthstar · elevation © arcticdem';}
+    if(ok){buildTerrain();setSpawn();buildFestivalMarker();buildMinimap();buildFireworks();var a=document.getElementById('f-attr');if(a)a.textContent='imagery © esri, maxar, earthstar · elevation © arcticdem';}
     demReady=true;if(flyEl)flyEl.textContent='click to fly';
   });
   requestAnimationFrame(loop);
