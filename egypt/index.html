@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Egypt Eclipse Flight</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<meta name="description" content="Drift above the west bank of Luxor as the longest totality brings the Nile into night."/>
+<!-- Open Graph / social share card -->
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Egypt Eclipse Flight"/>
+<meta property="og:description" content="Drift above the west bank of Luxor as the longest totality brings the Nile into night."/>
+<meta property="og:url" content="https://eclipseflight.com/egypt/"/>
+<meta property="og:image" content="https://eclipseflight.com/egypt/assets/og.jpg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Egypt Eclipse Flight"/>
+<meta name="twitter:description" content="Drift above the west bank of Luxor as the longest totality brings the Nile into night."/>
+<meta name="twitter:image" content="https://eclipseflight.com/egypt/assets/og.jpg"/>
+<style>
+  html,body{margin:0;height:100%;background:#0a0a12;overflow:hidden;font-family:'Space Grotesk',system-ui,sans-serif}
+  #fwrap{position:relative;width:100vw;height:100vh;height:100dvh}
+  canvas{display:block;width:100%;height:100%;outline:none;touch-action:none;-webkit-user-select:none;user-select:none}
+  .h{position:absolute;inset:0;pointer-events:none;z-index:5}
+  .g{color:#f4c874;text-shadow:0 0 8px rgba(230,170,80,.5)}
+  /* mobile only — never affects the desktop layout */
+  @media (max-width:680px){#f-title{font-size:34px!important}#f-sub{font-size:13px!important;max-width:30ch!important}#f-spd,#f-alt{font-size:24px!important}}
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300&family=Space+Grotesk:wght@300;400;500&display=swap');
+</style>
+</head>
+<body>
+<div id="fwrap">
+  <canvas id="fc" tabindex="0"></canvas>
+
+  <!-- Heads-up display (purely presentational; values are written by the loop) -->
+  <div class="h" aria-hidden="true">
+    <div id="f-hdg" class="g" style="position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.3em">HDG ---</div>
+    <div id="f-phase" style="position:absolute;top:46px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:#ffe9b8;text-shadow:0 0 10px rgba(255,233,184,.6)">first contact</div>
+    <div class="g" style="position:absolute;left:26px;top:50%;transform:translateY(-50%)"><div id="f-spd" style="font-size:32px;font-weight:500;line-height:1">0</div><div style="font-size:10px;letter-spacing:.26em;color:#c79a54;text-transform:uppercase;margin-top:4px">km / h</div></div>
+    <div class="g" style="position:absolute;right:26px;top:50%;transform:translateY(-50%);text-align:right"><div id="f-alt" style="font-size:32px;font-weight:500;line-height:1">0</div><div style="font-size:10px;letter-spacing:.26em;color:#c79a54;text-transform:uppercase;margin-top:4px">m · altitude</div></div>
+    <div style="position:absolute;top:50%;left:50%;width:120px;height:120px;transform:translate(-50%,-50%);opacity:.4"><div style="position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(244,200,116,.6)"></div><div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(244,200,116,.6)"></div></div>
+    <div style="position:absolute;right:26px;bottom:26px;width:14px;height:160px;border:1px solid rgba(244,200,116,.4);border-radius:8px;overflow:hidden"><i id="f-thr" style="position:absolute;left:0;right:0;bottom:0;height:40%;background:#f4c874;display:block"></i></div>
+    <div id="f-hint-hud" style="position:absolute;left:26px;bottom:22px;font-size:11px;letter-spacing:.1em;color:#c79a54;line-height:1.7">↑↓ climb · ←→ steer · W/S drift · space burner · E hasten eclipse · R reset</div>
+    <!-- Data attribution (required); text is filled from the heightmap sidecar so it stays correct per-source -->
+    <div id="f-attr" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.08em;color:#8a7a58;opacity:.6"></div>
+  </div>
+
+  <!-- Minimap frame: the 3D map renders into the canvas beneath this; this is just the border + label -->
+  <div id="f-map" style="position:absolute;left:14px;bottom:46px;width:230px;height:150px;z-index:5;border:1px solid rgba(244,200,116,.4);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.45);pointer-events:none;display:none">
+    <div style="position:absolute;top:5px;left:10px;font-size:9px;letter-spacing:.02em;color:#f4c874;opacity:.9;text-shadow:0 1px 3px rgba(0,0,0,.7)">Map of Luxor · West Bank</div>
+  </div>
+
+  <!-- Background music: starts on "click to fly", loops; toggle with the speaker button (top-right). -->
+  <audio id="bgm" loop preload="auto" src="assets/soundtrack.mp3"></audio>
+  <button id="f-mute" aria-label="toggle music" title="music on / off" style="position:absolute;top:16px;right:18px;z-index:6;pointer-events:auto;width:34px;height:34px;border-radius:50%;background:rgba(8,8,14,.5);border:1px solid rgba(244,200,116,.4);color:#f4c874;font-size:15px;line-height:30px;text-align:center;cursor:pointer;padding:0">🔊</button>
+
+  <!-- Win overlay: shown when the balloon lands on the Egypt Eclipse coin -->
+  <div id="f-win" style="position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center">
+    <div style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:64px;color:#fff;text-shadow:0 0 34px rgba(255,190,70,.85),0 2px 18px rgba(0,0,0,.65);line-height:1.05">You landed<br>on the Eclipse</div>
+    <div style="margin-top:20px;color:#ffe9b8;font-size:12px;letter-spacing:.34em;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.85)">✦ you win ✦&nbsp;&nbsp;&nbsp;tap or press R to fly again</div>
+  </div>
+
+  <!-- Start overlay; the button stays "loading terrain…" until the DEM is decoded -->
+  <div id="f-start" style="position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,8,14,.82);text-align:center;cursor:pointer">
+    <div id="f-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:56px;color:#f4f1ea">Egypt Eclipse Flight</div>
+    <div id="f-sub" style="margin-top:14px;color:#c9c0ad;font-size:14px;max-width:40ch">drift above the west bank of Luxor as the longest totality brings the Nile into night</div>
+    <div id="f-fly" style="margin-top:30px;padding:14px 32px;border:1px solid #f4c874;border-radius:100px;color:#f4c874;font-size:12px;letter-spacing:.3em;text-transform:uppercase">loading terrain…</div>
+    <div id="f-hint-start" style="margin-top:24px;font-size:11px;color:#8a8168;letter-spacing:.12em">↑↓ climb · ←→ steer · W/S drift · space burner · E hasten eclipse</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  'use strict';
+  var THREE=window.THREE; if(!THREE) return;
+
+  // ---------------------------------------------------------------- renderer + scene
+  var canvas=document.getElementById('fc'), wrap=document.getElementById('fwrap');
+  var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  var scene=new THREE.Scene();
+  var day=new THREE.Color(0xaec4d4), night=new THREE.Color(0x0a0a16);   // pale desert sky → totality indigo
+  scene.background=day.clone();
+  // Real-world scale: 1 unit = 1 metre, terrain ≈27 km — so fog and the far clip plane sit far out.
+  scene.fog=new THREE.Fog(0xaec4d4,3500,52000);
+  var BASE_FOV=70, camera=new THREE.PerspectiveCamera(BASE_FOV,1,3,62000); camera.layers.enable(2); // layer 2 = sky/atmosphere (main view only, kept out of the minimap)
+
+  // High, harsh desert sun (Luxor, late-morning eclipse ~2 Aug 2027) coming from the SE.
+  var sun=new THREE.DirectionalLight(0xfff0d2,1.25); sun.position.set(2600,3600,-2600); scene.add(sun);
+  var hemi=new THREE.HemisphereLight(0xbcd0e0,0x6b5334,0.72); scene.add(hemi);   // warm sand ground-bounce
+
+  // ---------------------------------------------------------------- sky: sun / moon / corona / stars
+  // Camera-locked sprites with depthTest off, so they behave like a skybox and the terrain never
+  // occludes the eclipse. The eclipse choreography is preserved verbatim from the Iceland original.
+  function radialTex(stops){var c=document.createElement('canvas');c.width=c.height=128;var x=c.getContext('2d');var g=x.createRadialGradient(64,64,0,64,64,64);stops.forEach(function(s){g.addColorStop(s[0],s[1]);});x.fillStyle=g;x.fillRect(0,0,128,128);var t=new THREE.Texture(c);t.needsUpdate=true;return t;}
+  var sunTex=radialTex([[0,'rgba(255,248,224,1)'],[0.5,'rgba(255,233,184,1)'],[0.78,'rgba(255,210,140,0.5)'],[1,'rgba(255,210,140,0)']]);
+  var moonTex=radialTex([[0,'rgba(4,5,8,1)'],[0.82,'rgba(4,5,8,1)'],[0.93,'rgba(4,5,8,0.9)'],[1,'rgba(4,5,8,0)']]);
+  var coronaTex=radialTex([[0,'rgba(255,255,255,0)'],[0.42,'rgba(255,250,235,0)'],[0.52,'rgba(255,247,225,0.9)'],[0.62,'rgba(255,236,196,0.25)'],[1,'rgba(255,236,196,0)']]);
+  function sprite(tex,scale,blend){var m=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false});if(blend)m.blending=THREE.AdditiveBlending;var s=new THREE.Sprite(m);s.scale.set(scale,scale,1);return s;}
+  var corona=sprite(coronaTex,2600,true); corona.material.opacity=0; scene.add(corona);
+  var sunS=sprite(sunTex,760,true); scene.add(sunS);
+  var moonS=sprite(moonTex,820,false); scene.add(moonS);
+  // Star dome (only visible at totality); radius pushed beyond the terrain so it reads as far sky.
+  var sg=new THREE.BufferGeometry(),spA=[];
+  for(var i=0;i<1400;i++){var th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1),r=30000;spA.push(r*Math.sin(ph)*Math.cos(th),Math.abs(r*Math.cos(ph))*0.9+600,r*Math.sin(ph)*Math.sin(th));}
+  sg.setAttribute('position',new THREE.Float32BufferAttribute(spA,3));
+  var stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:70,transparent:true,opacity:0,depthWrite:false}));scene.add(stars);
+
+  // ---- horizon glow — the desert "false sunset": a warm 360° band that rings the horizon as the
+  //      moon's shadow rushes in. Replaces Iceland's aurora (there are no northern lights at 25°N).
+  var glowMat=new THREE.ShaderMaterial({
+    uniforms:{uTime:{value:0},uIntensity:{value:0}},
+    transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, depthTest:false, side:THREE.BackSide,
+    vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:[
+      'varying vec2 vUv; uniform float uTime; uniform float uIntensity;',
+      'void main(){',
+      '  float d = vUv.y - 0.5;',                                   // 0 at the horizon line
+      '  float glow = exp(-pow(d/0.11, 2.0));',                     // soft band centred on the horizon
+      '  glow *= smoothstep(-0.12, 0.02, d);',                      // suppress most of the below-horizon half
+      '  float az = 0.80 + 0.20*sin(vUv.x*18.85 + uTime*0.25)*sin(vUv.x*6.28 - uTime*0.11);', // uneven around the ring
+      '  glow *= az;',
+      '  vec3 col = mix(vec3(1.0,0.44,0.18), vec3(0.72,0.26,0.42), smoothstep(0.0,0.17,d));',  // copper → dusky magenta
+      '  gl_FragColor = vec4(col*glow*uIntensity*1.9, glow*uIntensity*0.85);',
+      '}'
+    ].join('\n')
+  });
+  var glow=new THREE.Mesh(new THREE.CylinderGeometry(20000,20000,26000,72,1,true),glowMat);
+  glow.visible=false; scene.add(glow);
+  // Sky + atmosphere live on layer 2 so the minimap camera (layers 0+1) never shows them.
+  [corona,sunS,moonS,stars,glow].forEach(function(o){o.layers.set(2);});
+
+  // ---------------------------------------------------------------- terrain (real Terrarium/SRTM heightmap)
+  var EXAG=2.4;        // vertical exaggeration — 475 m of relief over 27 km reads flat from the air
+  var DEM=null;        // {data:Float32Array, size, spanX, spanZ, minE, maxE, spawn, peak, …}
+  var terrainMesh=null;
+  function hash(x,z){var n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);}
+  function vn(x,z){var xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi,u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);var a=hash(xi,zi),b=hash(xi+1,zi),c=hash(xi,zi+1),d=hash(xi+1,zi+1);return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;}
+
+  // Bilinear height sampler in WORLD METRES. +x = east, +z = south, origin = bbox centre.
+  // The mesh AND the flight collision both call this, so they can never drift apart. Outside the
+  // bbox we CLAMP to the edge (no sea here — the desert just continues flat past the frame).
+  function H(wx,wz){
+    if(!DEM) return 0;
+    var u=(wx+DEM.spanX/2)/DEM.spanX, v=(wz+DEM.spanZ/2)/DEM.spanZ;
+    if(u<0)u=0;else if(u>1)u=1; if(v<0)v=0;else if(v>1)v=1;
+    var s=DEM.size, fx=u*(s-1), fy=v*(s-1);
+    var x0=Math.floor(fx),y0=Math.floor(fy),x1=Math.min(x0+1,s-1),y1=Math.min(y0+1,s-1);
+    var tx=fx-x0,ty=fy-y0,d=DEM.data;
+    var top=d[y0*s+x0]+(d[y0*s+x1]-d[y0*s+x0])*tx;
+    var bot=d[y1*s+x0]+(d[y1*s+x1]-d[y1*s+x0])*tx;
+    return (top+(bot-top)*ty)*EXAG;
+  }
+
+  // Build the terrain mesh once the DEM is in memory. Collision stays full-resolution via H()
+  // regardless of mesh density, so SEG only trades visual crispness against vertex count.
+  function buildTerrain(){
+    var coarse=(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
+    var SEG=coarse?512:1024;
+    var geo=new THREE.PlaneGeometry(DEM.spanX,DEM.spanZ,SEG,SEG); geo.rotateX(-Math.PI/2);
+    var pos=geo.attributes.position, cols=[];
+    // Desert elevation ramp (fallback only — the Esri imagery normally overrides this):
+    var cValley=new THREE.Color(0x6f6a3c),cSand=new THREE.Color(0xb39a6a),cRock=new THREE.Color(0xc9b184),cLime=new THREE.Color(0xe0d3b0);
+    var lo=DEM.minE, hi=DEM.maxE, rng=(hi-lo)||1;
+    for(var i=0;i<pos.count;i++){
+      var x=pos.getX(i),z=pos.getZ(i),h=H(x,z); pos.setY(i,h);
+      var e=h/EXAG, t=(e-lo)/rng, c=new THREE.Color();                 // t = 0 (valley) … 1 (Theban peaks)
+      if(t<0.10) c.copy(cValley).lerp(cSand,t/0.10);                   // cultivated valley floor → sand
+      else if(t<0.55) c.copy(cSand).lerp(cRock,(t-0.10)/0.45);         // desert sand → ochre rock
+      else c.copy(cRock).lerp(cLime,(t-0.55)/0.45);                    // limestone cliffs of the Theban hills
+      c.multiplyScalar(0.86+0.14*vn(x/300,z/300));                     // faint deterministic dither
+      cols.push(c.r,c.g,c.b);
+    }
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+    geo.computeVertexNormals();                                        // essential — real DEM is unlit-flat without it
+    terrainMesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}));
+    scene.add(terrainMesh);
+    // Drape real satellite imagery over the terrain (Esri World Imagery, baked to the same bbox).
+    // Falls back to the elevation colour-ramp above if the texture fails to load.
+    new THREE.TextureLoader().load('assets/luxor-imagery.jpg',function(tex){
+      tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      var m=terrainMesh.material; m.map=tex; m.vertexColors=false; m.color.setHex(0xffffff); m.needsUpdate=true;
+    });
+  }
+
+  // ---------------------------------------------------------------- real buildings (OSM footprints)
+  // Real OpenStreetMap building footprints for Luxor, baked to local metres + heights, extruded here
+  // into ONE merged geometry draped on the terrain: sandy homes across the west-bank villages + east-
+  // bank city, pale-limestone temples/landmarks (Karnak, Medinet Habu, the Ramesseum, Deir el-Bahari…).
+  var BUILD_EXAG=EXAG;   // scale building heights with the terrain's vertical exaggeration so they sit believably
+  function buildBuildings(list){
+    var pos=[],col=[],cN=new THREE.Color(0xc9b389),cL=new THREE.Color(0xe6dcbf),tmp=new THREE.Color();
+    function tri(ax,ay,az,bx,by,bz,cx,cy,cz,r,g,b){pos.push(ax,ay,az,bx,by,bz,cx,cy,cz);col.push(r,g,b,r,g,b,r,g,b);}
+    for(var bi=0;bi<list.length;bi++){
+      var B=list[bi],f=B.p,npt=f.length>>1; if(npt<3)continue;
+      var vx=[],vz=[],baseY=Infinity;
+      for(var i=0;i<npt;i++){var x=f[i*2],z=f[i*2+1];vx.push(x);vz.push(z);var gy=H(x,z);if(gy<baseY)baseY=gy;}
+      if(!isFinite(baseY))continue;
+      // orient the ring consistently (shoelace on the x/z plane) so the roof triangulates cleanly
+      var A=0;for(var i=0;i<npt;i++){var j=(i+1)%npt;A+=vx[i]*vz[j]-vx[j]*vz[i];}
+      if(A<0){vx.reverse();vz.reverse();}
+      var bex=B.t?3.4:BUILD_EXAG;   // temples/landmarks stand taller so they read from the air
+      baseY-=1.5; var topY=baseY+Math.max(4,B.h*bex);
+      var vfac=0.82+0.30*vn(vx[0]*0.6,vz[0]*0.6);            // per-building tonal variation
+      tmp.copy(B.t?cL:cN).multiplyScalar(vfac); var r=tmp.r,g=tmp.g,b=tmp.b;
+      for(var i=0;i<npt;i++){var j=(i+1)%npt,x0=vx[i],z0=vz[i],x1=vx[j],z1=vz[j];
+        tri(x0,baseY,z0,x1,baseY,z1,x1,topY,z1,r,g,b);
+        tri(x0,baseY,z0,x1,topY,z1,x0,topY,z0,r,g,b);}
+      var contour=[];for(var i=0;i<npt;i++)contour.push(new THREE.Vector2(vx[i],vz[i]));
+      var tris=THREE.ShapeUtils.triangulateShape(contour,[]);
+      var rr=Math.min(1,r*1.1),rg=Math.min(1,g*1.1),rb=Math.min(1,b*1.1);   // roofs a touch lighter
+      for(var t=0;t<tris.length;t++){var a=contour[tris[t][0]],c2=contour[tris[t][1]],d2=contour[tris[t][2]];
+        tri(a.x,topY,a.y,c2.x,topY,c2.y,d2.x,topY,d2.y,rr,rg,rb);}
+    }
+    var geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+    geo.computeVertexNormals();
+    scene.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.93,metalness:0,side:THREE.DoubleSide})));
+  }
+  function loadBuildings(){
+    fetch('assets/luxor-buildings.json').then(function(r){return r.json();}).then(function(d){
+      if(d&&d.buildings&&d.buildings.length)buildBuildings(d.buildings);
+    }).catch(function(){});   // buildings are a nice-to-have — the sim runs fine without them
+  }
+
+  // ---------------------------------------------------------------- Egyptian balloon skin (canvas texture)
+  // A hand-drawn, tileable Egyptian decoration wrapped around the envelope: jewel-tone gores with gold
+  // seams, a gold collar band of alternating ankh / Eye-of-Horus / sun-disk motifs, an ankh frieze near
+  // the crown, a lotus frieze near the mouth, and a radiant sun crown at the top. u wraps around the
+  // balloon, v runs mouth(0)→crown(1); with the default flipY the crown is drawn at the top of the canvas.
+  function egyptianEnvelopeTex(){
+    var W=1536,H=576,c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');
+    var LAPIS='#173a86',GOLD='#e7bb3c',GOLDD='#a9801c',TURQ='#12968d',CARN='#b0343f',DARK='#0d1430';
+    // vertical gores — gold alternates with jewel tones
+    var goreCols=[LAPIS,GOLD,TURQ,GOLD,CARN,GOLD],NG=12;
+    for(var i=0;i<NG;i++){x.fillStyle=goreCols[i%goreCols.length];x.fillRect(i*W/NG,0,W/NG+1,H);}
+    x.strokeStyle=GOLDD;x.lineWidth=4;for(var i=0;i<=NG;i++){x.beginPath();x.moveTo(i*W/NG,0);x.lineTo(i*W/NG,H);x.stroke();}
+    function ankh(cx,cy,s,col){x.save();x.translate(cx,cy);x.strokeStyle=col;x.fillStyle=col;x.lineWidth=Math.max(2,s*0.18);x.lineCap='round';
+      x.beginPath();x.ellipse(0,-s*0.52,s*0.30,s*0.40,0,0,Math.PI*2);x.stroke();
+      x.beginPath();x.moveTo(0,-s*0.12);x.lineTo(0,s*0.82);x.stroke();
+      x.beginPath();x.moveTo(-s*0.44,s*0.06);x.lineTo(s*0.44,s*0.06);x.stroke();x.restore();}
+    function eye(cx,cy,s,col){x.save();x.translate(cx,cy);x.strokeStyle=col;x.fillStyle=col;x.lineWidth=Math.max(2,s*0.15);x.lineCap='round';
+      x.beginPath();x.moveTo(-s*0.75,-s*0.12);x.quadraticCurveTo(0,-s*0.62,s*0.75,-s*0.15);x.stroke();
+      x.beginPath();x.moveTo(-s*0.75,-s*0.12);x.quadraticCurveTo(0,s*0.34,s*0.55,s*0.02);x.stroke();
+      x.beginPath();x.arc(0,-s*0.06,s*0.17,0,Math.PI*2);x.fill();
+      x.beginPath();x.moveTo(s*0.55,s*0.02);x.lineTo(s*1.02,s*0.24);x.stroke();
+      x.beginPath();x.moveTo(-s*0.18,s*0.24);x.quadraticCurveTo(-s*0.1,s*0.72,-s*0.6,s*0.66);x.stroke();x.restore();}
+    function sun(cx,cy,s,col){x.fillStyle=col;x.beginPath();x.arc(cx,cy,s*0.5,0,Math.PI*2);x.fill();x.strokeStyle=DARK;x.lineWidth=Math.max(2,s*0.09);x.beginPath();x.arc(cx,cy,s*0.5,0,Math.PI*2);x.stroke();}
+    function lotus(cx,cy,s,col){x.save();x.translate(cx,cy);x.fillStyle=col;function petal(a){x.save();x.rotate(a);x.beginPath();x.moveTo(0,s*0.5);x.quadraticCurveTo(s*0.30,-s*0.12,0,-s*0.62);x.quadraticCurveTo(-s*0.30,-s*0.12,0,s*0.5);x.fill();x.restore();}petal(0);petal(-0.5);petal(0.5);x.restore();}
+    // collar band (main feature) — dark band with gold ankh / eye / sun motifs
+    var by=H*0.40,bh=H*0.21;x.fillStyle=DARK;x.fillRect(0,by,W,bh);x.fillStyle=GOLD;x.fillRect(0,by-6,W,6);x.fillRect(0,by+bh,W,6);
+    var NM=9,cyb=by+bh/2,s=bh*0.60;for(var i=0;i<NM;i++){var cx=(i+0.5)*W/NM,k=i%3;if(k===0)ankh(cx,cyb,s,GOLD);else if(k===1)eye(cx,cyb-s*0.04,s,GOLD);else sun(cx,cyb,s,GOLD);}
+    // upper ankh frieze
+    var uy=H*0.15,uh=H*0.12;x.fillStyle=DARK;x.fillRect(0,uy,W,uh);x.fillStyle=GOLD;x.fillRect(0,uy-4,W,4);x.fillRect(0,uy+uh,W,4);
+    var NU=18;for(var i=0;i<NU;i++)ankh((i+0.5)*W/NU,uy+uh/2,uh*0.5,GOLD);
+    // base lotus frieze (near the mouth)
+    var ly=H*0.82,lh=H*0.16;x.fillStyle=DARK;x.fillRect(0,ly,W,lh);x.fillStyle=GOLD;x.fillRect(0,ly-5,W,5);x.fillRect(0,ly+lh,W,5);
+    var NL=14;for(var i=0;i<NL;i++)lotus((i+0.5)*W/NL,ly+lh*0.52,lh*0.72,GOLD);
+    // radiant sun crown at the very top (converges to the apex)
+    x.fillStyle=DARK;x.fillRect(0,0,W,H*0.1);var NR=24;for(var i=0;i<NR;i+=2){x.fillStyle=GOLD;x.beginPath();x.moveTo(i*W/NR,H*0.1);x.lineTo((i+1)*W/NR,0);x.lineTo((i+2)*W/NR,H*0.1);x.closePath();x.fill();}
+    x.fillStyle=GOLD;x.fillRect(0,H*0.1,W,5);
+    var t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;t.anisotropy=8;return t;
+  }
+
+  // ---------------------------------------------------------------- the aircraft (hot-air balloon)
+  // Built from primitives so the sim stays single-file/no-asset. A rounder, fuller envelope wrapped in
+  // an Egyptian-decorated skin (egyptianEnvelopeTex) over a burner + wicker basket on rope lines. Group
+  // origin sits at the basket (= st.pos); the envelope towers above. Frame: −z = forward, +y = up.
+  // userData holds the animated flame + burner light (flickered each frame by animateBalloon).
+  function buildBalloon(){
+    var g=new THREE.Group(), DS=THREE.DoubleSide;
+    var H0=6.0;                                                  // envelope mouth height above the basket origin
+    // Rounder, fuller envelope profile [radius, height] (the old teardrop read as pointy/ugly).
+    var prof=[[1.3,0],[3.2,0.9],[5.2,2.2],[6.9,3.9],[8.0,5.9],[8.55,8.2],[8.6,10.6],[8.2,12.9],[7.3,14.9],[5.9,16.5],[4.0,17.7],[2.0,18.5],[0.0,19.0]];
+    var P=prof.map(function(p){return new THREE.Vector2(p[0],p[1]);});
+    var envMesh=new THREE.Mesh(new THREE.LatheGeometry(P,64),new THREE.MeshStandardMaterial({map:egyptianEnvelopeTex(),roughness:0.5,metalness:0.06,side:DS}));
+    envMesh.geometry.computeVertexNormals(); envMesh.position.y=H0; g.add(envMesh);
+    // Mouth / throat ring (scorched fabric) just below the envelope.
+    var throat=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.95,1.4,20,1,true),new THREE.MeshStandardMaterial({color:0x241a12,roughness:0.9,side:DS}));
+    throat.position.y=H0-0.5; g.add(throat);
+    // Burner cage — four metal uprights.
+    var steel=new THREE.MeshStandardMaterial({color:0x565b62,metalness:0.9,roughness:0.35});
+    for(var s2=0;s2<4;s2++){var a=s2*Math.PI/2;var up=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,2.4,8),steel);up.position.set(Math.cos(a)*0.9,H0-2.4,Math.sin(a)*0.9);g.add(up);}
+    // Twin gas flames (additive) + a warm point light that flickers — the balloon's glow at totality.
+    var flameOuter=new THREE.Mesh(new THREE.ConeGeometry(0.85,3.1,16,1,true),new THREE.MeshBasicMaterial({color:0xff8a2a,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false,side:DS}));
+    flameOuter.position.y=H0-2.1; g.add(flameOuter);
+    var flameInner=new THREE.Mesh(new THREE.ConeGeometry(0.42,1.9,14,1,true),new THREE.MeshBasicMaterial({color:0x74bcff,transparent:true,opacity:0.82,blending:THREE.AdditiveBlending,depthWrite:false,side:DS}));
+    flameInner.position.y=H0-2.5; g.add(flameInner);
+    var light=new THREE.PointLight(0xffa23a,1.0,150,2.0); light.position.set(0,H0-2.1,0); g.add(light);
+    // Wicker basket + rim at the origin.
+    var basket=new THREE.Mesh(new THREE.BoxGeometry(3.0,2.4,3.0),new THREE.MeshStandardMaterial({color:0x8a5a2b,roughness:0.85,metalness:0.02})); basket.position.y=-1.0; g.add(basket);
+    var rim=new THREE.Mesh(new THREE.BoxGeometry(3.34,0.42,3.34),new THREE.MeshStandardMaterial({color:0x6f4420,roughness:0.8})); rim.position.y=0.2; g.add(rim);
+    // Four suspension ropes: basket rim corners → throat.
+    var ropeMat=new THREE.MeshStandardMaterial({color:0x2b2b2b,roughness:0.9});
+    for(var c=0;c<4;c++){
+      var a2=Math.PI/4+c*Math.PI/2, bx=Math.cos(a2)*1.5, bz=Math.sin(a2)*1.5, tx=Math.cos(a2)*1.4, tz=Math.sin(a2)*1.4;
+      var top=new THREE.Vector3(tx,H0-1.0,tz), bot=new THREE.Vector3(bx,0.3,bz);
+      var mid=top.clone().add(bot).multiplyScalar(0.5), len=top.distanceTo(bot);
+      var rope=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,len,6),ropeMat);
+      rope.position.copy(mid);
+      rope.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),top.clone().sub(bot).normalize());
+      g.add(rope);
+    }
+    g.userData={flameOuter:flameOuter,flameInner:flameInner,light:light};
+    return g;
+  }
+  var balloon=buildBalloon(); scene.add(balloon);
+
+  // Flicker the burner flame + glow, flare it on burner/climb input, and add a slow floating bob.
+  function animateBalloon(now,dt){
+    var u=balloon.userData; if(!u) return;
+    var climbing=(keys['arrowup']?1:0)||((typeof touch!=='undefined'&&touch.active&&touch.py>0.2)?1:0);
+    var burn=0.4+0.6*st.boost+(climbing?0.35:0);
+    var fl=0.75+0.22*Math.sin(now*0.028)+0.12*(Math.random()-0.5);
+    if(u.flameOuter){u.flameOuter.scale.set(1+0.12*fl,(0.8+0.75*burn)*(0.92+0.16*fl),1+0.12*fl);u.flameOuter.material.opacity=0.5+0.35*fl;}
+    if(u.flameInner){u.flameInner.scale.set(1,0.7+0.65*burn,1);u.flameInner.material.opacity=0.55+0.3*fl;}
+    if(u.light){u.light.intensity=(0.45+1.9*burn)*(0.9+0.1*fl);}
+    balloon.position.y+=Math.sin(now*0.0011)*0.6;   // gentle float bob (visual only; physics uses st.pos)
+  }
+
+  // ---------------------------------------------------------------- central site marker (Egypt Eclipse coin)
+  // Copied from the Iceland festival marker: concentric glowing rings laid flat on the real terrain, plus a
+  // spinning "coin" (assets/coin.png) floating above — at the central map site 25.723550, 32.607078 (→ local metres).
+  var SITE={x:60,z:75};
+  var coinTex=new THREE.TextureLoader().load('assets/coin.png');
+  var siteCoin=null, siteRingMat=null;
+  var won=false, winPos=new THREE.Vector3(), LAND_R=210, LAND_ALT=50;   // land-on-the-coin win: horizontal radius + altitude-above-ground thresholds
+  var FW_COLORS=[[2.2,1.5,0.5],[2.4,0.5,0.4],[0.5,2.2,0.8],[0.5,1.4,2.4],[2.2,0.6,1.8],[2.4,2.4,2.2],[2.4,1.2,0.3],[2.2,0.9,1.5]];
+  var fw={pts:null,geo:null,pos:null,col:null,parts:[],max:6500,cursor:0,t:0,last:0,gy:0};
+  function buildSiteMarker(){
+    var gy=H(SITE.x,SITE.z), grp=new THREE.Group(); grp.position.set(SITE.x,gy+4,SITE.z);
+    function ring(ri,ro,op){var mm=new THREE.MeshBasicMaterial({color:0xffb24d,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});var m=new THREE.Mesh(new THREE.RingGeometry(ri,ro,64),mm);m.rotation.x=-Math.PI/2;grp.add(m);return mm;}
+    siteRingMat=ring(150,184,0.55);   // outer ring (gently pulses in the loop)
+    ring(72,88,0.5);                  // inner ring
+    ring(0,150,0.07);                 // soft fill
+    // the coin — a real 3D disc: a gold metal rim + the emblem on both round faces (two single-sided
+    // CircleGeometry faces so the text reads right from either side), wrapped in a warm corona glow.
+    siteCoin=new THREE.Group(); siteCoin.position.set(0,112,0);
+    var CR=64, CTH=11;
+    var faceMat=new THREE.MeshBasicMaterial({map:coinTex,transparent:true,alphaTest:0.5,side:THREE.FrontSide});
+    var rimMat=new THREE.MeshStandardMaterial({color:0xdca63c,metalness:0.9,roughness:0.34,emissive:0x4a3410,emissiveIntensity:0.7});
+    var rim=new THREE.Mesh(new THREE.CylinderGeometry(CR,CR,CTH,60,1,true),rimMat); rim.rotation.x=Math.PI/2; siteCoin.add(rim);
+    var cf1=new THREE.Mesh(new THREE.CircleGeometry(CR,60),faceMat); cf1.position.z=CTH/2+0.2; siteCoin.add(cf1);
+    var cf2=new THREE.Mesh(new THREE.CircleGeometry(CR,60),faceMat); cf2.position.z=-CTH/2-0.2; cf2.rotation.y=Math.PI; siteCoin.add(cf2);
+    var cglow=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.4}));
+    cglow.scale.set(CR*1.85,CR*1.85,1); siteCoin.add(cglow);
+    grp.add(siteCoin);
+    scene.add(grp);
+  }
+
+  // ---------------------------------------------------------------- fireworks (win celebration)
+  function sparkTex(){var c=document.createElement('canvas');c.width=c.height=64;var x=c.getContext('2d');var g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.28,'rgba(255,255,255,0.85)');g.addColorStop(0.6,'rgba(255,255,255,0.22)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);var t=new THREE.Texture(c);t.needsUpdate=true;return t;}
+  function buildFireworks(){
+    fw.pos=new Float32Array(fw.max*3); fw.col=new Float32Array(fw.max*3);
+    fw.geo=new THREE.BufferGeometry();
+    fw.geo.setAttribute('position',new THREE.BufferAttribute(fw.pos,3));
+    fw.geo.setAttribute('color',new THREE.BufferAttribute(fw.col,3));
+    fw.geo.setDrawRange(0,0);
+    fw.pts=new THREE.Points(fw.geo,new THREE.PointsMaterial({size:56,map:sparkTex(),vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));
+    fw.pts.frustumCulled=false; fw.pts.layers.set(2); scene.add(fw.pts);   // layer 2 = main view only (never in the minimap)
+    for(var i=0;i<fw.max;i++)fw.parts.push({life:0,ml:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,r:0,g:0,b:0});
+    fw.gy=H(SITE.x,SITE.z);
+  }
+  function fwBurst(cx,cy,cz,col,n,sp){
+    for(var i=0;i<n;i++){var p=fw.parts[fw.cursor++ % fw.max];
+      var th=Math.random()*6.283, ph=Math.acos(2*Math.random()-1), s=sp*(0.35+Math.random()*0.75);
+      p.x=cx;p.y=cy;p.z=cz;
+      p.vx=Math.sin(ph)*Math.cos(th)*s; p.vy=Math.cos(ph)*s; p.vz=Math.sin(ph)*Math.sin(th)*s;
+      p.r=col[0];p.g=col[1];p.b=col[2]; p.ml=1.1+Math.random()*1.2; p.life=p.ml;
+    }
+  }
+  function fwShoot(){ var b=winPos, c=FW_COLORS[(Math.random()*FW_COLORS.length)|0]; fwBurst(b.x+(Math.random()-0.5)*1600, fw.gy+320+Math.random()*1200, b.z+(Math.random()-0.5)*1600, c, 200, 320); }
+  function fwVolley(){ for(var k=0;k<10;k++)fwShoot(); fw.t=0; fw.last=0; }
+  function fwStep(dt,now){
+    fw.t+=dt;
+    if(fw.t-fw.last>0.19){ fw.last=fw.t; fwShoot(); fwShoot(); if(Math.random()<0.5)fwShoot(); }
+    var pos=fw.pos,col=fw.col,k=0,GR=150;
+    for(var i=0;i<fw.max;i++){var p=fw.parts[i]; if(p.life<=0)continue; p.life-=dt; if(p.life<=0)continue;
+      p.vy-=GR*dt; p.vx*=0.986;p.vy*=0.99;p.vz*=0.986; p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
+      var a=(p.life/p.ml)*(0.62+0.38*Math.sin(now*0.03+i));
+      pos[k*3]=p.x;pos[k*3+1]=p.y;pos[k*3+2]=p.z; col[k*3]=p.r*a;col[k*3+1]=p.g*a;col[k*3+2]=p.b*a; k++;
+    }
+    fw.geo.setDrawRange(0,k); fw.geo.attributes.position.needsUpdate=true; fw.geo.attributes.color.needsUpdate=true;
+  }
+  function fwClear(){ for(var i=0;i<fw.parts.length;i++)fw.parts[i].life=0; if(fw.geo)fw.geo.setDrawRange(0,0); }
+
+  // ---------------------------------------------------------------- minimap (corner map of the west bank)
+  // A tilted top-down second camera over the whole bbox, plus bright layer-1 markers (a gold site pin at
+  // the central map site + the player arrow) that only the minimap camera renders.
+  var miniCam=null, playerArrow=null;
+  var mapMW=232, mapMH=150, mapMX=14, mapMY=46;        // rectangular minimap + corner offsets (set in rz)
+  function buildMinimap(){
+    // A low, tilted camera over the area gives the in-game "3D map" look (relief + horizon),
+    // not a flat top-down. North is up; the whole area stays in frame.
+    miniCam=new THREE.PerspectiveCamera(42,mapMW/mapMH,800,150000);
+    miniCam.position.set(0,22000,23000);miniCam.lookAt(0,300,-1500);miniCam.layers.enable(1);
+    // site pin — a bright gold marker at the central map site that always faces the minimap camera
+    var py=H(SITE.x,SITE.z);
+    var pin=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTex,transparent:true,depthTest:false,depthWrite:false}));
+    pin.scale.set(1900,1900,1);pin.position.set(SITE.x,py+900,SITE.z);pin.renderOrder=11;pin.layers.set(1);scene.add(pin);
+    // player arrow — flat, rotates to your heading, always drawn on top
+    var sh=new THREE.Shape();sh.moveTo(0,1700);sh.lineTo(-1080,-1280);sh.lineTo(0,-560);sh.lineTo(1080,-1280);sh.lineTo(0,1700);
+    var ar=new THREE.Mesh(new THREE.ShapeGeometry(sh),new THREE.MeshBasicMaterial({color:0x6fe9ff,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+    ar.rotation.x=-Math.PI/2;ar.renderOrder=12;playerArrow=new THREE.Group();playerArrow.add(ar);
+    playerArrow.traverse(function(o){if(o.layers)o.layers.set(1);});scene.add(playerArrow);
+  }
+
+  // ---------------------------------------------------------------- flight state
+  // Scientifically accurate Sun at mid-totality of the 2 Aug 2027 eclipse over Luxor: altitude 81.7°,
+  // azimuth 197° (SSW). In sim axes (+x east, +z south, +y up): x=cos(alt)sin(az), y=sin(alt), z=-cos(alt)cos(az).
+  var SUNDIR=new THREE.Vector3(-0.042,0.990,0.138).normalize();
+  var SUN_AZ=197*Math.PI/180;                                 // eclipse azimuth (for the spawn heading)
+  var SPAWN=new THREE.Vector3(0,1200,0), START_ALT=1200, facePeak=0;  // finalised once the DEM loads
+  var st={pos:SPAWN.clone(),heading:0,pitch:-0.02,roll:0,throttle:0.4,speed:80,boost:0,ecl:0};
+  var MINS=28,MAXS=82,keys={},BOUND=12500;   // metres/second — a serene balloon drift (slower than the jet)
+
+  function resetFlight(){st.pos.copy(SPAWN);st.heading=facePeak;st.pitch=-0.02;st.roll=0;st.throttle=0.4;st.speed=40;st.ecl=0;won=false;var we=document.getElementById('f-win');if(we)we.style.display='none';fwClear();}
+
+  // Seat the spawn over the Marsam Hotel, facing SSW toward the eclipse (so the corona rises dead ahead
+  // as totality nears). The sim's forward azimuth = −heading, so face the Sun by heading = −SUN_AZ.
+  function setSpawn(){
+    SPAWN.set(DEM.spawn.x,START_ALT,DEM.spawn.z);
+    facePeak=-SUN_AZ;
+    resetFlight();
+    var q=new THREE.Quaternion().setFromEuler(new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'));
+    balloon.position.copy(st.pos); balloon.quaternion.copy(q);
+    camera.position.copy(st.pos).add(new THREE.Vector3(0,14,60).applyQuaternion(q));
+  }
+
+  function kd(e){var k=e.key.toLowerCase();keys[k]=true;if(['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(k)>=0)e.preventDefault();}
+  function ku(e){keys[e.key.toLowerCase()]=false;}
+  window.addEventListener('keydown',kd);window.addEventListener('keyup',ku);
+
+  // ---- touch steering (mobile) — drag anywhere to climb/steer; desktop keyboard is untouched ----
+  var touch={active:false,px:0,py:0,ox:0,oy:0,ref:200};
+  function tStart(e){var t=e.touches[0];if(!t)return;if(won){resetFlight();e.preventDefault();return;}touch.active=true;touch.ox=t.clientX;touch.oy=t.clientY;touch.px=0;touch.py=0;touch.ref=(Math.min(window.innerWidth,window.innerHeight)*0.28)||200;e.preventDefault();}
+  function tMove(e){if(!touch.active)return;var t=e.touches[0];if(!t)return;touch.px=-Math.max(-1,Math.min(1,(t.clientX-touch.ox)/touch.ref));touch.py=-Math.max(-1,Math.min(1,(t.clientY-touch.oy)/touch.ref));e.preventDefault();}
+  function tEnd(){touch.active=false;touch.px=0;touch.py=0;}
+  canvas.addEventListener('touchstart',tStart,{passive:false});
+  canvas.addEventListener('touchmove',tMove,{passive:false});
+  canvas.addEventListener('touchend',tEnd);canvas.addEventListener('touchcancel',tEnd);
+
+  // ---------------------------------------------------------------- heightmap loader (async)
+  var demReady=false, started=false;
+  var startEl=document.getElementById('f-start'), flyEl=document.getElementById('f-fly');
+  var bgm=document.getElementById('bgm'), muteBtn=document.getElementById('f-mute');
+  function loadHeightmap(cb){
+    fetch('assets/luxor-height.json').then(function(r){return r.json();}).then(function(meta){
+      var img=new Image();
+      img.onload=function(){
+        var cv=document.createElement('canvas'); cv.width=cv.height=meta.size;
+        var cx=cv.getContext('2d'); cx.drawImage(img,0,0);
+        var px=cx.getImageData(0,0,meta.size,meta.size).data;   // same-origin asset → canvas is not tainted
+        var n=meta.size*meta.size, data=new Float32Array(n), range=meta.maxElevation-meta.minElevation;
+        for(var i=0;i<n;i++){var g16=(px[i*4]<<8)|px[i*4+1]; data[i]=meta.minElevation+(g16/65535)*range;} // decode R/G → metres
+        DEM={data:data,size:meta.size,spanX:meta.spanMetersX,spanZ:meta.spanMetersZ,minE:meta.minElevation,maxE:meta.maxElevation,spawn:meta.spawn,peak:meta.peak,attribution:meta.attribution};
+        cb(true);
+      };
+      img.onerror=function(){cb(false);};   // PNG missing → fall through to flat ground (still flyable)
+      img.src='assets/luxor-height.png';
+    }).catch(function(){cb(false);});       // sidecar missing → same graceful fallback
+  }
+
+  var startElClick=function(){if(!demReady)return;started=true;startEl.style.display='none';canvas.focus();if(bgm){bgm.volume=0.5;bgm.play().catch(function(){});}};
+  startEl.addEventListener('click',startElClick);
+  canvas.addEventListener('click',function(){canvas.focus();if(won)resetFlight();});
+  if(muteBtn) muteBtn.addEventListener('click',function(e){e.stopPropagation();if(!bgm)return;bgm.muted=!bgm.muted;muteBtn.textContent=bgm.muted?'🔇':'🔊';muteBtn.style.color=bgm.muted?'#8a7a58':'#f4c874';});
+  // mobile: replace the keyboard hints with a touch instruction
+  if(window.matchMedia&&matchMedia('(pointer:coarse)').matches){
+    var hs=document.getElementById('f-hint-start');if(hs)hs.textContent='drag anywhere to fly · the eclipse unfolds as you go';
+    var hh=document.getElementById('f-hint-hud');if(hh)hh.textContent='drag to steer';
+  }
+
+  // ---------------------------------------------------------------- main loop
+  var hE=document.getElementById('f-hdg'),sE=document.getElementById('f-spd'),aE=document.getElementById('f-alt'),tE=document.getElementById('f-thr'),phE=document.getElementById('f-phase');
+  function smooth(a,b,x){x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x);}
+
+  var last=performance.now();
+  function loop(now){var dt=Math.min((now-last)/1000,0.05);last=now;
+    if(started){
+      if(!won){
+      var pIn=(keys['arrowup']?1:0)-(keys['arrowdown']?1:0),rIn=(keys['arrowleft']?1:0)-(keys['arrowright']?1:0),tIn=(keys['w']?1:0)-(keys['s']?1:0);
+      if(touch.active){pIn=touch.py;rIn=touch.px;} // mobile: finger drag steers climb + turn
+      st.throttle=Math.max(0,Math.min(1,st.throttle+tIn*0.5*dt));st.boost+=(((keys[' ']?1:0))-st.boost)*Math.min(1,dt*4);
+      st.pitch+=pIn*0.7*dt;st.pitch-=st.pitch*0.8*dt;st.pitch=Math.max(-0.42,Math.min(0.42,st.pitch));           // gentle climb / descend
+      st.roll+=rIn*1.1*dt;st.roll-=st.roll*1.4*dt;st.roll=Math.max(-0.34,Math.min(0.34,st.roll));st.heading+=st.roll*1.25*dt; // slow lean-steer, stays upright
+      var tgt=MINS+(MAXS-MINS)*st.throttle+st.boost*52;st.speed+=(tgt-st.speed)*Math.min(1,dt*1.2);              // serene drift
+      st.pos.addScaledVector(new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'))),st.speed*dt);
+      var g=H(st.pos.x,st.pos.z),minY=g+22;if(st.pos.y<minY){st.pos.y=minY;if(st.pitch<0.05)st.pitch+=1.2*dt;}
+      // WIN — drift down into the marker ring and touch down on the Egypt Eclipse coin (no crash, just a soft landing)
+      var wdx=st.pos.x-SITE.x,wdz=st.pos.z-SITE.z;if((wdx*wdx+wdz*wdz)<LAND_R*LAND_R&&(st.pos.y-g)<LAND_ALT){won=true;st.speed=0;winPos.copy(st.pos);var we=document.getElementById('f-win');if(we)we.style.display='flex';fwVolley();}
+      // soft turn-back at the edge of the baked area (no sea to fall into — just keep you over Luxor)
+      if(Math.hypot(st.pos.x,st.pos.z)>BOUND){var want=Math.atan2(st.pos.x,st.pos.z),diff=want-st.heading;while(diff>Math.PI)diff-=2*Math.PI;while(diff<-Math.PI)diff+=2*Math.PI;st.heading+=diff*Math.min(1,dt*0.6);}
+      }
+      if(keys['r'])resetFlight();
+      // --- eclipse phase (computed early so the camera can tilt up toward the overhead corona) ---
+      st.ecl+=dt*(keys['e']?9:1)/70;if(st.ecl>1)st.ecl-=1;var phase=st.ecl,sep=Math.abs(phase-0.5)*2,coverage=smooth(1.0,0.0,sep),totality=smooth(0.86,0.99,coverage);
+      var euler=new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'),q=new THREE.Quaternion().setFromEuler(euler),fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
+      balloon.position.copy(st.pos);balloon.quaternion.copy(q);
+      animateBalloon(now,dt);
+      var camPos=st.pos.clone().add(new THREE.Vector3(0,14,60).applyQuaternion(q));
+      camera.position.lerp(camPos,Math.min(1,dt*2.4));
+      // The real 2 Aug 2027 Luxor eclipse is nearly overhead (alt ~82°, az ~197° SSW) — unlike Iceland's
+      // low sun. As totality nears, pan the gaze from the landscape straight up the Sun's direction so the
+      // majestic corona rises into view above the balloon (SUNDIR points at the corona from the camera).
+      var baseT=st.pos.clone().add(fwd.clone().multiplyScalar(48)).add(new THREE.Vector3(0,9,0));
+      var baseDir=baseT.sub(camera.position).normalize();
+      // A gentle up-tilt keeps the balloon in the lower frame; widening the FOV at totality lets the
+      // overhead corona fit in the SAME shot — so the balloon always flies with you (never left behind).
+      var revealAmt=smooth(0.15,0.9,coverage)*0.46;
+      var lookDir=baseDir.lerp(SUNDIR,revealAmt).normalize();
+      camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(300)));camera.up.set(0,1,0);
+      camera.fov=BASE_FOV+coverage*32;camera.updateProjectionMatrix();
+      // --- eclipse sky (choreography from the Iceland original; corona enlarged for the high overhead sun) ---
+      var sunPos=camera.position.clone().add(SUNDIR.clone().multiplyScalar(16000));sunS.position.copy(sunPos);corona.position.copy(sunPos);
+      var right=new THREE.Vector3().crossVectors(SUNDIR,new THREE.Vector3(0,1,0)).normalize(),up=new THREE.Vector3().crossVectors(right,SUNDIR).normalize();
+      var slide=(phase-0.5)*2,off=right.clone().multiplyScalar(slide*1500).add(up.clone().multiplyScalar(slide*260));moonS.position.copy(sunPos).add(off);
+      corona.material.opacity=totality;corona.scale.setScalar(2600+totality*3000);sunS.material.opacity=1-totality*0.65;stars.position.copy(camera.position);stars.material.opacity=totality;
+      // horizon "false sunset" — builds through deep partial, peaks at totality
+      var glowAmt=smooth(0.55,0.99,coverage);glow.visible=glowAmt>0.01;if(glow.visible){glowMat.uniforms.uIntensity.value=glowAmt;glowMat.uniforms.uTime.value=now*0.001;glow.position.copy(camera.position);}
+      var lightF=0.16+0.84*Math.pow(1-coverage,1.4);sun.intensity=1.25*lightF;hemi.intensity=0.18+0.55*lightF;sun.color.setHSL(0.09,0.55,0.5+0.22*lightF);
+      var nightAmt=Math.pow(coverage,1.3)*0.94;scene.background.copy(day).lerp(night,nightAmt);scene.fog.color.copy(scene.background);scene.fog.far=52000+totality*15000;
+      // --- HUD ---
+      hE.textContent='HDG '+String(Math.round((((-st.heading*180/Math.PI)%360)+360)%360)).padStart(3,'0');
+      sE.textContent=Math.round(st.speed*3.6);aE.textContent=Math.round(st.pos.y);tE.style.height=Math.round(st.throttle*100)+'%';
+      phE.textContent=totality>0.85?'totality':(coverage>0.5?'deep partial':(phase<0.5?'first contact':'fourth contact'));phE.style.opacity=0.5+0.5*coverage;
+    }
+    if(siteRingMat)siteRingMat.opacity=0.34+0.22*Math.sin(now*0.0022);   // marker ring pulse
+    if(siteCoin)siteCoin.rotation.y=now*0.0005;                          // coin: slow horizontal spin
+    if(won)fwStep(dt,now);                                               // grand fireworks while the win screen is up
+    renderer.render(scene,camera);
+    // --- corner minimap: second pass from the top-down camera into the lower-left viewport ---
+    if(started&&miniCam){
+      var mp=document.getElementById('f-map');if(mp&&mp.style.display==='none')mp.style.display='block';
+      if(playerArrow){playerArrow.position.set(st.pos.x,H(st.pos.x,st.pos.z)+320,st.pos.z);playerArrow.rotation.y=st.heading;}
+      var fog0=scene.fog;scene.fog=null;
+      renderer.setScissorTest(true);renderer.setViewport(mapMX,mapMY,mapMW,mapMH);renderer.setScissor(mapMX,mapMY,mapMW,mapMH);
+      renderer.render(scene,miniCam);
+      renderer.setScissorTest(false);renderer.setViewport(0,0,wrap.clientWidth,wrap.clientHeight);
+      scene.fog=fog0;
+    }
+    requestAnimationFrame(loop);
+  }
+  function rz(){var w=wrap.clientWidth,h=wrap.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+    mapMH=Math.max(96,Math.min(152,Math.round(Math.min(w,h)*0.22)));mapMW=Math.round(mapMH*1.55);mapMX=14;mapMY=46;
+    if(miniCam){miniCam.aspect=mapMW/mapMH;miniCam.updateProjectionMatrix();}
+    var mp=document.getElementById('f-map');if(mp){mp.style.width=mapMW+'px';mp.style.height=mapMH+'px';mp.style.left=mapMX+'px';mp.style.bottom=mapMY+'px';}
+  }
+  window.addEventListener('resize',rz);rz();
+
+  // ---------------------------------------------------------------- boot
+  loadHeightmap(function(ok){
+    if(ok){buildTerrain();setSpawn();buildMinimap();loadBuildings();buildSiteMarker();buildFireworks();var a=document.getElementById('f-attr');if(a)a.textContent='imagery © esri · elevation © aws terrain / srtm · buildings © openstreetmap';}
+    demReady=true;if(flyEl)flyEl.textContent='click to fly';
+  });
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
