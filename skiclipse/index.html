@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>Eclipse Descent — Alpine Totality Ski</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a1024'/%3E%3Cg transform='rotate(24 16 18)'%3E%3Crect x='14.3' y='3.5' width='3.4' height='25.5' rx='1.7' fill='%23ffcf7a'/%3E%3C/g%3E%3Cg transform='rotate(-24 16 18)'%3E%3Crect x='14.3' y='3.5' width='3.4' height='25.5' rx='1.7' fill='%23e8ecf4'/%3E%3C/g%3E%3Ccircle cx='25' cy='6.8' r='3.2' fill='none' stroke='%23fff2cc' stroke-width='1.6'/%3E%3C/svg%3E"/>
+<meta name="description" content="Carve a high alpine face as the moon swallows the sun. Free-ride to totality, or take on Adventure: dodge rocks and snowballs and stick the target landing."/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Eclipse Descent"/>
+<meta property="og:description" content="Carve a high alpine face as the moon swallows the sun — and ride inside totality, again and again."/>
+<meta property="og:url" content="https://eclipseflight.com/skiclipse/"/>
+<meta property="og:image" content="https://eclipseflight.com/skiclipse/assets/og.jpg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Eclipse Descent"/>
+<meta name="twitter:description" content="Carve a high alpine face as the moon swallows the sun — and ride inside totality, again and again."/>
+<meta name="twitter:image" content="https://eclipseflight.com/skiclipse/assets/og.jpg"/>
+<style>
+  html,body{margin:0;height:100%;background:#0a0e18;overflow:hidden;font-family:'Space Grotesk',system-ui,sans-serif}
+  #wrap{position:relative;width:100vw;height:100vh;height:100dvh}
+  canvas{display:block;width:100%;height:100%;outline:none;touch-action:none;-webkit-user-select:none;user-select:none}
+  .h{position:absolute;inset:0;pointer-events:none;z-index:5}
+  .g{color:#d6ecff;text-shadow:0 0 10px rgba(150,200,255,.45)}
+  .lab{font-size:10px;letter-spacing:.26em;color:#7fa6cc;text-transform:uppercase;margin-top:4px}
+  #speedlines{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .25s;
+    background:radial-gradient(ellipse at center,transparent 42%,rgba(255,255,255,.14) 100%);mix-blend-mode:screen}
+  #flash{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;background:rgba(255,60,60,.35)}
+  /* menu */
+  .modecard{pointer-events:auto;cursor:pointer;width:230px;background:rgba(14,22,36,.55);border:1px solid rgba(150,200,255,.35);
+    border-radius:16px;padding:22px 20px;color:#d6ecff;text-align:center;transition:transform .15s,border-color .15s,background .15s;font-family:inherit}
+  .modecard:hover{transform:translateY(-4px);border-color:#d6ecff;background:rgba(20,32,52,.7)}
+  .mc-ico{font-size:34px;line-height:1}
+  .mc-name{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:27px;margin-top:8px;color:#f2f6ff}
+  .mc-desc{font-size:12px;color:#9fb4d2;margin-top:8px;line-height:1.45}
+  #diff-row{margin-top:26px;display:none;align-items:center;gap:12px}
+  .difflab{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:#7fa6cc;margin-right:4px}
+  .diffbtn{pointer-events:auto;cursor:pointer;padding:10px 20px;border-radius:100px;font-size:12px;letter-spacing:.16em;
+    text-transform:uppercase;font-family:inherit;background:rgba(14,22,36,.6);border:1px solid;transition:transform .12s,box-shadow .12s}
+  .diffbtn:hover{transform:translateY(-2px)}
+  .diffbtn[data-d=green]{color:#7fe0a0;border-color:#3ba368;box-shadow:0 0 0 rgba(59,163,104,0)}
+  .diffbtn[data-d=green]:hover{box-shadow:0 4px 18px rgba(59,163,104,.5)}
+  .diffbtn[data-d=blue]{color:#79b6ff;border-color:#2f7be0}
+  .diffbtn[data-d=blue]:hover{box-shadow:0 4px 18px rgba(47,123,224,.5)}
+  .diffbtn[data-d=black]{color:#e7ecf4;border-color:#8a94a8}
+  .diffbtn[data-d=black]:hover{box-shadow:0 4px 18px rgba(160,170,190,.5)}
+  /* post-run tap buttons: hidden on desktop, shown on touch/small screens (overlays are keyboard-only otherwise) */
+  .ovbtn{display:none;pointer-events:auto;cursor:pointer;padding:12px 26px;border-radius:100px;font-family:inherit;
+    font-size:12px;letter-spacing:.22em;text-transform:uppercase;background:rgba(10,16,26,.55);border:1px solid #ffe6b0;color:#ffe6b0}
+  #fail .ovbtn{border-color:#ff8a7a;color:#ff8a7a}
+  .ovrow{display:flex;gap:14px;margin-top:24px;justify-content:center}
+  @media (max-width:680px),(pointer:coarse){
+    .ovbtn{display:inline-block}
+    .kbd-hint{display:none!important}
+  }
+  /* ---------- mobile: narrow screens OR touch-first devices (landscape phones included); desktop pointers never match ---------- */
+  @media (max-width:680px), (pointer:coarse) and (max-width:1024px){
+    #s-title{font-size:40px!important}#s-sub{font-size:13px!important;padding:0 16px}
+    #mode-row{flex-direction:column}.modecard{width:78vw;max-width:320px}
+    #diff-row{flex-wrap:wrap;justify-content:center;padding:0 12px}
+    #s-hint{padding:0 16px}
+    /* top strip: tighter type so the phase label clears the sound button; notch-safe offsets */
+    #h-phase{top:calc(12px + env(safe-area-inset-top))!important;font-size:9px!important;letter-spacing:.18em!important;max-width:62vw;text-align:center}
+    #h-hdg{top:calc(28px + env(safe-area-inset-top))!important;font-size:9px!important;letter-spacing:.16em!important}
+    #h-hearts{top:calc(44px + env(safe-area-inset-top))!important;font-size:14px!important}
+    #mute{top:calc(10px + env(safe-area-inset-top))!important}
+    /* the toast was a 34px nowrap line — the main screen-overlap offender */
+    #h-toast{font-size:19px!important;white-space:normal!important;width:86vw;line-height:1.3}
+    #h-air{font-size:20px!important}
+    #h-spd,#h-alt{font-size:24px!important}
+    .lab{font-size:8px!important;letter-spacing:.18em!important}
+    #h-hint{display:none}
+    /* thumb zones: TUCK bottom-left, JUMP bottom-right (they were dead-centre over the skier) */
+    #tuckbtn,#jumpbtn{display:flex!important;width:72px!important;height:72px!important;bottom:calc(16px + env(safe-area-inset-bottom))!important}
+    #tuckbtn{left:calc(14px + env(safe-area-inset-left))!important}
+    #jumpbtn{left:auto!important;right:calc(14px + env(safe-area-inset-right))!important}
+    /* counter + progress bar lift clear of the thumb buttons */
+    #h-countwrap{left:16px!important;bottom:calc(104px + env(safe-area-inset-bottom))!important;font-size:11px!important}
+    #h-progwrap{right:12px!important;bottom:calc(104px + env(safe-area-inset-bottom))!important;height:96px!important}
+    /* overlays: fit small portrait screens */
+    #finish-title,#fail-title{font-size:40px!important}
+    #finish-stats,#fail-stats{font-size:12px!important;padding:0 14px;line-height:1.8}
+  }
+  /* landscape phones: short viewport — compress the menu so nothing clips (scrolls if it must) */
+  @media (max-height:520px){
+    #start{overflow-y:auto;justify-content:flex-start;padding:16px 0 12px}
+    #s-title{font-size:30px!important}
+    #s-sub{font-size:12px!important;margin-top:6px!important}
+    #mode-row{margin-top:12px!important;gap:12px!important;flex-direction:row}
+    .modecard{width:220px;padding:10px 14px}
+    .mc-ico{font-size:20px}.mc-name{font-size:19px;margin-top:4px}.mc-desc{font-size:10.5px;margin-top:4px}
+    #diff-row{margin-top:12px!important}
+    #s-hint{margin-top:12px!important}
+    #finish-title,#fail-title{font-size:34px!important}
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Space+Grotesk:wght@300;400;500&display=swap');
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" tabindex="0"></canvas>
+  <div id="speedlines"></div>
+  <div id="flash"></div>
+
+  <!-- Heads-up display (presentational; the loop writes the values) -->
+  <div class="h" aria-hidden="true">
+    <div id="h-phase" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.36em;text-transform:uppercase;color:#ffe6b0;text-shadow:0 0 12px rgba(255,220,150,.6)">first contact</div>
+    <div id="h-hdg" class="g" style="position:absolute;top:44px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.3em;opacity:.7">FALL LINE</div>
+    <div id="h-hearts" style="position:absolute;top:66px;left:50%;transform:translateX(-50%);font-size:17px;letter-spacing:.14em;color:#ff6b6b;text-shadow:0 0 10px rgba(255,90,90,.6);display:none"></div>
+
+    <div class="g" style="position:absolute;left:26px;top:50%;transform:translateY(-50%)">
+      <div id="h-spd" style="font-size:34px;font-weight:500;line-height:1">0</div><div class="lab">km / h</div></div>
+    <div class="g" style="position:absolute;right:26px;top:50%;transform:translateY(-50%);text-align:right">
+      <div id="h-alt" style="font-size:34px;font-weight:500;line-height:1">0</div><div class="lab">m · altitude</div></div>
+
+    <div class="g" id="h-countwrap" style="position:absolute;left:26px;bottom:74px;font-size:12px;letter-spacing:.14em">
+      <span id="h-countlab" style="color:#7fa6cc">GATES</span> <span id="h-count">0</span></div>
+    <div id="h-air" style="position:absolute;left:50%;top:34%;transform:translateX(-50%);font-family:'Cormorant Garamond',serif;font-size:30px;color:#fff;opacity:0;text-shadow:0 0 20px rgba(180,220,255,.8)">AIR</div>
+    <div id="h-toast" style="position:absolute;left:50%;top:26%;transform:translateX(-50%);font-family:'Cormorant Garamond',serif;font-size:34px;color:#ffe6b0;opacity:0;text-shadow:0 0 22px rgba(255,210,140,.85);text-align:center;white-space:nowrap"></div>
+
+    <div id="h-progwrap" style="position:absolute;right:26px;bottom:74px;width:14px;height:150px;border:1px solid rgba(150,200,255,.35);border-radius:8px;overflow:hidden">
+      <i id="h-prog" style="position:absolute;left:0;right:0;top:0;height:0%;background:linear-gradient(#ffe6b0,#6fb0ff);display:block"></i></div>
+
+    <div id="h-hint" style="position:absolute;left:26px;bottom:22px;font-size:11px;letter-spacing:.1em;color:#7fa6cc;line-height:1.7">←→ carve · ↑ tuck · space jump · ↓ check speed · E eclipse · R restart</div>
+  </div>
+
+  <button id="tuckbtn" aria-label="tuck" style="display:none;position:absolute;bottom:26px;left:calc(50% - 92px);z-index:6;pointer-events:auto;width:78px;height:78px;border-radius:50%;background:rgba(10,16,26,.5);border:1px solid rgba(150,200,255,.45);color:#d6ecff;font-size:11px;letter-spacing:.16em;align-items:center;justify-content:center">TUCK</button>
+  <button id="jumpbtn" aria-label="jump" style="display:none;position:absolute;bottom:26px;left:calc(50% + 14px);z-index:6;pointer-events:auto;width:78px;height:78px;border-radius:50%;background:rgba(10,16,26,.5);border:1px solid rgba(255,220,150,.5);color:#ffe6b0;font-size:11px;letter-spacing:.16em;align-items:center;justify-content:center">JUMP</button>
+
+  <button id="mute" aria-label="toggle sound" title="sound on / off" style="position:absolute;top:16px;right:18px;z-index:6;pointer-events:auto;width:34px;height:34px;border-radius:50%;background:rgba(10,16,26,.5);border:1px solid rgba(150,200,255,.4);color:#d6ecff;font-size:15px;line-height:30px;text-align:center;cursor:pointer;padding:0">🔊</button>
+
+  <!-- finish / totality overlay -->
+  <div id="finish" style="position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center">
+    <div id="finish-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:60px;color:#fff;text-shadow:0 0 40px rgba(255,210,140,.8),0 2px 18px rgba(0,0,0,.7);line-height:1.04">Totality<br>at the finish</div>
+    <div id="finish-stats" style="margin-top:18px;color:#d6ecff;font-size:13px;letter-spacing:.14em"></div>
+    <div class="kbd-hint" style="margin-top:22px;color:#ffe6b0;font-size:11px;letter-spacing:.34em;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.85)">press R to ride again &nbsp;·&nbsp; M for menu</div>
+    <div class="ovrow"><button class="ovbtn" id="fin-again">ride again</button><button class="ovbtn" id="fin-menu">menu</button></div>
+  </div>
+
+  <!-- fail overlay (adventure) -->
+  <div id="fail" style="position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center">
+    <div id="fail-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:58px;color:#ff8a7a;text-shadow:0 0 34px rgba(255,90,70,.6),0 2px 18px rgba(0,0,0,.7)">Wiped out</div>
+    <div id="fail-stats" style="margin-top:16px;color:#d6ecff;font-size:13px;letter-spacing:.14em"></div>
+    <div class="kbd-hint" style="margin-top:22px;color:#d6ecff;font-size:11px;letter-spacing:.34em;text-transform:uppercase">press R to retry &nbsp;·&nbsp; M for menu</div>
+    <div class="ovrow"><button class="ovbtn" id="fail-again">retry</button><button class="ovbtn" id="fail-menu">menu</button></div>
+  </div>
+
+  <!-- start / mode menu -->
+  <div id="start" style="position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,22,.82);text-align:center">
+    <div id="s-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:62px;color:#f2f6ff;letter-spacing:.01em">Eclipse Descent</div>
+    <div id="s-sub" style="margin-top:12px;color:#b8c8e0;font-size:14px;max-width:44ch;line-height:1.5">choose your line down the mountain — either way, the moon is swallowing the sun</div>
+    <div id="mode-row" style="margin-top:30px;display:flex;gap:22px;justify-content:center">
+      <button class="modecard" id="m-sim"><div class="mc-ico">❄</div><div class="mc-name">Free Ride</div><div class="mc-desc">roam the open mountain — totality sweeps over in real time, again and again</div></button>
+      <button class="modecard" id="m-adv"><div class="mc-ico">🎯</div><div class="mc-name">Adventure</div><div class="mc-desc">dodge rocks &amp; snowballs, then stick the target landing</div></button>
+    </div>
+    <div id="diff-row">
+      <span class="difflab">difficulty</span>
+      <button class="diffbtn" data-d="green">Green</button>
+      <button class="diffbtn" data-d="blue">Blue</button>
+      <button class="diffbtn" data-d="black">Black</button>
+    </div>
+    <div id="s-hint" style="margin-top:26px;font-size:11px;color:#6d84a4;letter-spacing:.12em">←→ carve · ↑ tuck · space jump · ↓ check speed · sound on</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- post-processing addons (r128 globals) for the eclipse bloom; guarded, desktop only -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/MaskPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+(function(){
+  'use strict';
+  var THREE = window.THREE; if(!THREE){ return; }
+  var clamp = THREE.MathUtils.clamp, smoothstep = THREE.MathUtils.smoothstep, lerp = THREE.MathUtils.lerp;
+
+  // ============================================================ constants
+  var RUNLEN=6600, GRADE=0.34, PISTE=60, TOP_ALT=2980, SKI_OFF=1.2;
+  var TARGET_ZZ = RUNLEN-140;          // where the bullseye sits
+  var FINAL_KICK = RUNLEN-215;         // the big launch ramp before it
+
+  var lowPower = (navigator.hardwareConcurrency||8) <= 4 || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+
+  var canvas=document.getElementById('c');
+  var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, lowPower?1.5:2));
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;      // filmic response — the big realism jump
+  renderer.toneMappingExposure=1.1;
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.shadowMap.enabled=!lowPower;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+  var scene=new THREE.Scene();
+  var DAY=new THREE.Color(0x9ec6ee), NIGHT=new THREE.Color(0x0a0920);   // totality zenith: deep indigo-violet
+  var HORIZON=new THREE.Color(0xcfe3f5), DUSK=new THREE.Color(0x3a2140); // HORIZON = the sky shader's uDayBot: fog & ridges converge on it
+  scene.background=DAY.clone();
+  scene.fog=new THREE.Fog(0x9ec6ee,700,6200);
+
+  var BASE_FOV=68;
+  var camera=new THREE.PerspectiveCamera(BASE_FOV,1,1,12000); camera.layers.enable(2);
+
+  // bloom composer (desktop only, guarded on addon availability)
+  var useBloom = !lowPower && THREE.EffectComposer && THREE.UnrealBloomPass && THREE.RenderPass && THREE.GammaCorrectionShader;
+  var composer, bloomPass;
+  if(useBloom){
+    try{
+      composer=new THREE.EffectComposer(renderer);
+      composer.addPass(new THREE.RenderPass(scene,camera));
+      bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.35,0.6,0.93);
+      composer.addPass(bloomPass);
+      composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader)); // linear RT -> sRGB out
+    }catch(e){ useBloom=false; }
+  }
+
+  // ------------------------------------------------------------ lighting
+  // key light tracks the VISIBLE sun (ahead + high) so you carve into backlight — grazing light is what makes snow read
+  var sun=new THREE.DirectionalLight(0xfff4e0,1.35); sun.position.set(100,260,-960); scene.add(sun);
+  sun.castShadow=!lowPower;
+  if(sun.castShadow){ sun.shadow.mapSize.set(2048,2048);
+    var sc=sun.shadow.camera; sc.near=60; sc.far=2400; sc.left=-160; sc.right=160; sc.top=160; sc.bottom=-160;
+    sun.shadow.bias=-0.0002; sun.shadow.normalBias=0.9; }
+  scene.add(sun.target);
+  var sky=new THREE.HemisphereLight(0xcfe4ff,0x8a93a8,0.85); scene.add(sky);  // strong sky/snow bounce fills the backlit faces
+  var fill=new THREE.DirectionalLight(0x9fbfe6,0.22); fill.position.set(300,200,400); scene.add(fill);
+
+  // soft round dot texture so snow/spray/glints aren't hard squares
+  var dotTex=(function(){ var cv=document.createElement('canvas'); cv.width=cv.height=64; var g=cv.getContext('2d');
+    var rg=g.createRadialGradient(32,32,0,32,32,32); rg.addColorStop(0,'rgba(255,255,255,1)'); rg.addColorStop(0.5,'rgba(255,255,255,0.7)'); rg.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=rg; g.fillRect(0,0,64,64); return new THREE.CanvasTexture(cv); })();
+
+  // ============================================================ noise + terrain field
+  function hash(x,y){ var s=Math.sin(x*127.1+y*311.7)*43758.5453; return s-Math.floor(s); }
+  function vnoise(x,y){ var xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+    var u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+    var a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1);
+    return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v; }
+  function fbm(x,y){ var amp=1,f=1,s=0,n=0; for(var o=0;o<4;o++){ s+=amp*vnoise(x*f,y*f); n+=amp; amp*=0.5; f*=2; } return s/n; }
+  function spineX(z){ var zz=-z; return 210*Math.sin(zz*0.00085)+88*Math.sin(zz*0.00028+1.3); }
+  var KICKERS=[1300,2350,3550,4700,5750];
+  function heightAt(x,z){
+    var zz=-z;
+    // past the finish the valley bottoms out into a flat basin (exponential ease, smooth at the joint) —
+    // the floor stops receding below the ridge silhouettes and the far mesh edge sits near the natural horizon
+    var over=Math.max(0,zz-RUNLEN), zzEff=zz-over+900*(1-Math.exp(-over/900));
+    var base=-GRADE*zzEff + 42*Math.sin(zz*0.00055)+20*Math.sin(zz*0.0016+2.1);
+    var dx=x-spineX(z), ad=Math.abs(dx);
+    var off=smoothstep(ad,PISTE*0.7,PISTE*2.4);
+    // layered relief so the surface reads like wind-worked snow, not a smooth digital hill
+    var mog=(0.7+5.2*off)*(fbm(x*0.05+30,zz*0.05)-0.5)*2.0      // moguls / chop (stronger off-piste)
+          + 0.5*(fbm(x*0.014,zz*0.02)-0.5)*6.0                 // broad rolls in the pitch
+          + 1.3*(fbm(x*0.022+11,zz*0.022+4)-0.5)              // soft mid-scale drift everywhere
+          + (0.5+1.6*off)*(fbm(x*0.09+3,zz*0.09)-0.5);        // fine sastrugi / wind ripple
+    var wall=0; if(ad>235){ var t=ad-235; var raw=t*t*0.0024+t*0.5;
+      var cap=280+140*fbm(x*0.004+9,zz*0.0035);      // walls crest into rolling ~300-420m shoulders instead of ramping forever — the widened mesh must look like mountains at its far edges, not a graph
+      wall=cap*Math.tanh(raw/cap); }
+    var kick=0; for(var i=0;i<KICKERS.length;i++){ var d=zz-KICKERS[i]; if(Math.abs(d)<22&&ad<PISTE*1.3){ var q=d/17; kick+=7.5*Math.max(0,1-q*q); } }
+    var d2=zz-FINAL_KICK; if(Math.abs(d2)<26&&ad<PISTE*1.5){ var q2=d2/20; kick+=13*Math.max(0,1-q2*q2); } // big final launch
+    return base+mog+wall+kick;
+  }
+
+  // ------------------------------------------------------------ terrain mesh (real PBR snow)
+  var texLoader=new THREE.TextureLoader(), maxAniso=renderer.capabilities.getMaxAnisotropy();
+  texLoader.crossOrigin='';
+  // assign each map only once it loads — a failed fetch degrades to clean untextured snow, never black
+  function snowTex(url,srgb,slot){ texLoader.load(url,function(t){
+    t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(115,960); t.anisotropy=Math.min(8,maxAniso); // ~14m tile size on the 1600x13500 mesh — repetition reads less "digital"
+    if(srgb) t.encoding=THREE.sRGBEncoding; tmat[slot]=t; tmat.needsUpdate=true; }); }
+
+  // wide + long enough that the camera never sees the mesh boundary unfogged: ±800 sideways, and the
+  // basin runs ~6.7km past the finish — beyond fog.far (6200) from anywhere the player can stand
+  var TW=1600, TL=RUNLEN+6900, segX=lowPower?190:240, segZ=lowPower?460:620;
+  var tgeo=new THREE.PlaneGeometry(TW,TL,segX,segZ);
+  tgeo.rotateX(-Math.PI/2); tgeo.translate(0,0,300-TL/2);
+  var tpos=tgeo.attributes.position, tcol=[], cc=new THREE.Color(), shadeBlue=new THREE.Color(0x9cb2d8);
+  var tusCol=new THREE.Color(0x8f7340), rockCol=new THREE.Color(0x6b6862);
+  for(var i=0;i<tpos.count;i++){
+    var x=tpos.getX(i),z=tpos.getZ(i),h=heightAt(x,z); tpos.setY(i,h);
+    var e=2.0, hx=(heightAt(x+e,z)-heightAt(x-e,z))/(2*e), hz=(heightAt(x,z+e)-heightAt(x,z-e))/(2*e);
+    var dx=Math.abs(x-spineX(z)),zz=-z, slope=Math.min(1,Math.sqrt(hx*hx+hz*hz));
+    // organic tint — macro + meso noise drive lightness so it never bands into flat digital patches
+    var n1=fbm(x*0.006+2,zz*0.006), n2=fbm(x*0.031+9,zz*0.031+5);
+    var L=0.85+0.06*(n1-0.5)*2+0.035*(n2-0.5)*2;
+    if(dx>250&&slope>0.70){ cc.setHSL(0.60,0.06,0.34+0.14*n2).lerp(rockCol,0.55); }         // exposed rock faces
+    else if(dx<PISTE){ var cord=0.018*Math.sin(x*0.9)+0.018*Math.sin(zz*0.8); cc.setHSL(0.58,0.03,Math.min(0.98,L+0.04+cord)); } // groomed corduroy
+    else { cc.setHSL(0.60,0.04+0.05*n1,L);                                                  // powder
+      var tus=fbm(x*0.02+7,zz*0.02+3), thr=0.72-0.14*(zz/RUNLEN);
+      if(tus>thr) cc.lerp(tusCol,Math.min(0.7,(tus-thr)*2.6));                              // tussock/scree bleeding through
+      cc.lerp(shadeBlue,clamp((0.5-n2)*0.5,0,0.16));                                        // cool blue in the hollows
+    }
+    tcol.push(cc.r,cc.g,cc.b);
+  }
+  tgeo.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3)); tgeo.computeVertexNormals();
+  var tmat=new THREE.MeshStandardMaterial({vertexColors:true,normalScale:new THREE.Vector2(1.9,1.9),roughness:0.88,metalness:0.0});
+  snowTex('assets/snow_color.jpg',true,'map'); snowTex('assets/snow_normal.jpg',false,'normalMap'); snowTex('assets/snow_rough.jpg',false,'roughnessMap');
+  var terrainMesh=new THREE.Mesh(tgeo,tmat); terrainMesh.receiveShadow=!lowPower; scene.add(terrainMesh);
+
+  // sparkle glints on the snow
+  var glintN=1400, gp=new Float32Array(glintN*3);
+  for(var i=0;i<glintN;i++){ var gx=(Math.random()-0.5)*TW*0.8, gz=-(Math.random()*RUNLEN); gp[i*3]=gx; gp[i*3+1]=heightAt(gx,gz)+0.4; gp[i*3+2]=gz; }
+  var glintMat=new THREE.PointsMaterial({color:0xdff0ff,map:dotTex,size:2.4,sizeAttenuation:true,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+  scene.add(new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.BufferAttribute(gp,3)),glintMat));
+
+  // ============================================================ sky dome + galaxy + stars + eclipse
+  var SUNDIR=new THREE.Vector3(0.10,0.26,-0.96).normalize(), SUNDIST=7200;
+  var SUN_PERP=new THREE.Vector3().crossVectors(SUNDIR,new THREE.Vector3(0,1,0)).normalize(); // along the moon's limb, for the diamond ring
+  var skyRig=new THREE.Group(); scene.add(skyRig);   // holds dome/galaxy/stars; recentred on the camera each frame
+
+  // sky gradient with a 360° twilight ring at totality (the signature "sunset all around")
+  var skyMat=new THREE.ShaderMaterial({ side:THREE.BackSide, depthWrite:false,
+    uniforms:{ uPhase:{value:0}, uSun:{value:SUNDIR.clone()},
+      uDayTop:{value:new THREE.Color(0x2f68b6)}, uDayBot:{value:new THREE.Color(0xcfe3f5)},
+      uZen:{value:new THREE.Color(0x0a0930)}, uTwHi:{value:new THREE.Color(0x83335a)}, uTwLo:{value:new THREE.Color(0xe6813c)} },
+    vertexShader:'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:[
+      'uniform float uPhase; uniform vec3 uSun,uDayTop,uDayBot,uZen,uTwHi,uTwLo; varying vec3 vP;',
+      'void main(){ vec3 d=normalize(vP); float up=clamp(d.y,0.0,1.0);',
+      ' vec3 day=mix(uDayBot,uDayTop,pow(up,0.62));',
+      ' float ring=smoothstep(0.42,0.0,up);',                          // twilight hugs the whole horizon
+      ' vec3 twi=mix(uTwHi,uTwLo,smoothstep(0.18,0.0,up));',           // orange low, rose higher
+      ' vec3 night=mix(uZen,twi,ring);',
+      ' vec2 sd=vec2(uSun.x,uSun.z), dh=vec2(d.x,d.z); float dl=length(dh); float az=0.0;',
+      ' if(dl>0.001) az=max(0.0,dot(normalize(sd),dh/dl));',
+      ' night+=uTwLo*ring*pow(az,2.5)*0.65; night+=uTwHi*ring*0.14;',  // brightest toward the hidden sun
+      ' vec3 col=mix(day,night,clamp(uPhase*1.12,0.0,1.0));',
+      ' gl_FragColor=vec4(col,1.0);}'
+    ].join('\n') });
+  var skyDome=new THREE.Mesh(new THREE.SphereGeometry(9000,32,20),skyMat); skyDome.layers.set(2); skyDome.renderOrder=-2; skyRig.add(skyDome);
+
+  // Milky Way — a great arc of nebulosity + star-fog that rises as totality falls
+  var galaxyMat=new THREE.ShaderMaterial({ side:THREE.BackSide, transparent:true, depthWrite:false, depthTest:false, blending:THREE.AdditiveBlending,
+    uniforms:{ uAmt:{value:0} },
+    vertexShader:'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:[
+      'uniform float uAmt; varying vec3 vP;',
+      'float h31(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }',
+      'float vn(vec3 p){ vec3 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);',
+      ' return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),',
+      '            mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z);}',
+      'float fbm3(vec3 p){ float a=0.5,s=0.0; for(int k=0;k<4;k++){ s+=a*vn(p); p*=2.03; a*=0.5;} return s; }',
+      'void main(){ vec3 d=normalize(vP); vec3 gn=normalize(vec3(0.36,0.52,0.77));',
+      ' float band=abs(dot(d,gn)); float m=smoothstep(0.36,0.02,band);',
+      ' float n=fbm3(d*7.0); float dust=smoothstep(0.40,0.72,fbm3(d*13.0+5.0));',
+      ' float bright=m*(0.30+0.78*n)*(1.0-0.65*dust); bright+=m*m*smoothstep(0.16,0.0,band)*0.7;',
+      ' float spark=pow(h31(floor(d*520.0)),42.0);',
+      ' vec3 col=mix(vec3(0.50,0.58,0.86),vec3(0.93,0.86,0.75),n)*bright;',
+      ' col+=vec3(0.9,0.95,1.0)*spark*m*1.4; col*=smoothstep(-0.02,0.22,d.y);',   // fade at/below horizon
+      ' col=col/(1.0+col*0.8);',                                 // soft-clip: raw custom shader bypasses the renderer\'s ACES tonemapping, so the galactic core must self-limit or it blows to a flat white slab under bloom
+      ' gl_FragColor=vec4(col*uAmt,1.0);}'
+    ].join('\n') });
+  var galaxy=new THREE.Mesh(new THREE.SphereGeometry(8600,32,20),galaxyMat); galaxy.layers.set(2); galaxy.renderOrder=-1; galaxy.visible=false; skyRig.add(galaxy);
+
+  // starfield — two layers (fine + bright), round, faintly coloured
+  function makeStars(count,size,spread){ var pos=new Float32Array(count*3), col=[], cc2=new THREE.Color();
+    for(var i=0;i<count;i++){ var v=new THREE.Vector3().set(Math.random()-0.5,Math.random()*0.92+0.04,Math.random()-0.5).normalize().multiplyScalar(spread); v.toArray(pos,i*3);
+      cc2.setHSL(0.55+(Math.random()-0.5)*0.2,0.35*Math.random(),0.72+Math.random()*0.28); col.push(cc2.r,cc2.g,cc2.b); }
+    var g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+    var mat=new THREE.PointsMaterial({size:size,map:dotTex,vertexColors:true,sizeAttenuation:true,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+    var pts=new THREE.Points(g,mat); pts.layers.set(2); skyRig.add(pts); return mat; }
+  var starMatA=makeStars(2600,7,8000), starMatB=makeStars(340,17,7800);
+
+  // distant mountain ridgelines — cheap silhouettes that give the valley a horizon
+  function ridgeTexture(seed,jag){ var cv=document.createElement('canvas'); cv.width=1024; cv.height=256; var g=cv.getContext('2d');
+    g.fillStyle='#ffffff'; g.beginPath(); g.moveTo(0,256);
+    for(var px=0;px<=1024;px+=4){ var t=px/1024;
+      var yy=120 - 70*fbm(t*9+seed,seed*3) - jag*26*fbm(t*33+seed*7,seed) ; g.lineTo(px,yy); }
+    g.lineTo(1024,256); g.closePath(); g.fill();
+    var t2=new THREE.CanvasTexture(cv); t2.wrapS=THREE.RepeatWrapping; t2.repeat.x=5; return t2; }
+  var ridgeG=new THREE.Group(); scene.add(ridgeG);
+  function mkRidge(radius,h,yoff,seed,jag){ var geo=new THREE.CylinderGeometry(radius,radius,h,72,1,true);
+    var mat=new THREE.MeshBasicMaterial({map:ridgeTexture(seed,jag),transparent:true,side:THREE.BackSide,depthWrite:false,fog:false});
+    var m=new THREE.Mesh(geo,mat); m.position.y=yoff; m.layers.set(2); ridgeG.add(m); return mat; }
+  // bases buried far below the horizon so only the jagged tops break the skyline
+  // rings are camera-anchored, so their bases must reach ~2200+ below camera height — deep enough to stay
+  // buried under the flattened basin floor (~ -2550) from every reachable vantage, per edge-verifier findings
+  var ridgeFar=mkRidge(8300,3400,-500,7,0.6), ridgeNear=mkRidge(6600,3000,-750,13,1.0);
+
+  function radial(inner,mid,outer){ var cv=document.createElement('canvas'); cv.width=cv.height=128; var g=cv.getContext('2d');
+    var rg=g.createRadialGradient(64,64,0,64,64,64); rg.addColorStop(0,inner); rg.addColorStop(0.4,mid); rg.addColorStop(1,outer);
+    g.fillStyle=rg; g.fillRect(0,0,128,128); return new THREE.CanvasTexture(cv); }
+  function bibTex(num){ var cv=document.createElement('canvas'); cv.width=140; cv.height=170; var g=cv.getContext('2d');
+    g.fillStyle='#f2f2ea'; g.fillRect(0,0,140,170); g.fillStyle='#c81f1f'; g.fillRect(0,0,140,26); g.fillRect(0,144,140,26);
+    g.fillStyle='#0e0f12'; g.font='bold 118px Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(num,70,90);
+    g.strokeStyle='#0e0f12'; g.lineWidth=5; g.strokeRect(3,3,134,164); var t=new THREE.CanvasTexture(cv); t.anisotropy=4; return t; }
+  // crisp eclipsed sun: one canvas, redrawn as the moon takes its bite (a punched hole shows the sky through it)
+  var eclCv=document.createElement('canvas'); eclCv.width=eclCv.height=512;
+  var eclTex=new THREE.CanvasTexture(eclCv); eclTex.encoding=THREE.sRGBEncoding; var lastCover=-1;
+  function drawEclipsedSun(cover){
+    var g=eclCv.getContext('2d'); g.clearRect(0,0,512,512);
+    var cx=256, R=95;
+    var glow=g.createRadialGradient(cx,cx,R*0.5,cx,cx,252);          // atmospheric glare
+    glow.addColorStop(0,'rgba(255,244,214,0.45)'); glow.addColorStop(0.4,'rgba(255,236,190,0.13)'); glow.addColorStop(1,'rgba(255,236,190,0)');
+    g.fillStyle=glow; g.fillRect(0,0,512,512);
+    var sg=g.createRadialGradient(cx,cx,0,cx,cx,R);                  // photosphere with limb darkening
+    sg.addColorStop(0,'#fffefa'); sg.addColorStop(0.8,'#fff3d2'); sg.addColorStop(1,'#ffdf9e');
+    g.fillStyle=sg; g.beginPath(); g.arc(cx,cx,R,0,6.2832); g.fill();
+    var d=(1-cover)*2.1*R, mx=cx+d*0.97, my=cx-d*0.26;               // moon slides in from upper-right
+    g.globalCompositeOperation='destination-out';
+    g.beginPath(); g.arc(mx,my,R*1.02,0,6.2832); g.fill();           // the bite: transparent, sky shows through
+    g.globalCompositeOperation='source-over';
+    eclTex.needsUpdate=true;
+  }
+  drawEclipsedSun(0.12);
+  var sunSpr=new THREE.Sprite(new THREE.SpriteMaterial({map:eclTex,depthWrite:false,depthTest:false,transparent:true}));
+  sunSpr.scale.set(1450,1450,1); sunSpr.layers.set(2); sunSpr.renderOrder=2; scene.add(sunSpr);
+  // corona — pearly inner glow, long equatorial streamers, chromosphere ring + red prominences
+  function makeCorona(res,streamers,longBias){ var cv=document.createElement('canvas'); cv.width=cv.height=res; var g=cv.getContext('2d'); var c=res/2;
+    var base=g.createRadialGradient(c,c,res*0.06,c,c,res*0.5);
+    base.addColorStop(0,'rgba(255,253,244,0.95)'); base.addColorStop(0.18,'rgba(246,248,255,0.5)'); base.addColorStop(0.5,'rgba(232,238,255,0.14)'); base.addColorStop(1,'rgba(232,238,255,0)');
+    g.fillStyle=base; g.fillRect(0,0,res,res);
+    for(var i=0;i<streamers;i++){ var a=Math.random()*6.2832, eq=0.45+0.55*Math.abs(Math.cos(a));  // equatorial streamers run longer
+      var len=res*(0.10+(0.14+longBias*0.22)*Math.random()*eq), w=res*0.006*(0.6+Math.random());
+      g.save(); g.translate(c,c); g.rotate(a);
+      var lg=g.createLinearGradient(res*0.09,0,res*0.09+len,0);
+      lg.addColorStop(0,'rgba(255,255,250,'+(0.09+Math.random()*0.13)+')'); lg.addColorStop(1,'rgba(255,255,250,0)');
+      g.fillStyle=lg; g.beginPath(); g.moveTo(res*0.09,-w); g.lineTo(res*0.09+len,0); g.lineTo(res*0.09,w); g.fill(); g.restore(); }
+    g.strokeStyle='rgba(255,96,120,0.55)'; g.lineWidth=res*0.008; g.beginPath(); g.arc(c,c,res*0.086,0,6.2832); g.stroke();  // chromosphere
+    for(var p=0;p<5;p++){ var pa=Math.random()*6.2832, pr=res*0.089; g.save(); g.translate(c+Math.cos(pa)*pr,c+Math.sin(pa)*pr);
+      g.fillStyle='rgba(255,72,92,'+(0.4+Math.random()*0.3)+')'; g.beginPath(); g.arc(0,0,res*(0.006+Math.random()*0.011),0,6.2832); g.fill(); g.restore(); }  // prominences
+    var t=new THREE.CanvasTexture(cv); t.encoding=THREE.sRGBEncoding; return t; }
+  var coronaSpr=new THREE.Sprite(new THREE.SpriteMaterial({map:makeCorona(1024,150,0.4),blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,transparent:true,opacity:0}));
+  coronaSpr.scale.set(2400,2400,1); coronaSpr.layers.set(2); coronaSpr.renderOrder=2; scene.add(coronaSpr);
+  var coronaSpr2=new THREE.Sprite(new THREE.SpriteMaterial({map:makeCorona(1024,90,1.0),blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,transparent:true,opacity:0}));
+  coronaSpr2.scale.set(4200,4200,1); coronaSpr2.layers.set(2); coronaSpr2.renderOrder=1; scene.add(coronaSpr2);
+  // the moon: a near-black disc drawn OVER the corona centre, so totality reads as a dark disc ringed by corona
+  var moonTex=(function(){ var cv=document.createElement('canvas'); cv.width=cv.height=256; var g=cv.getContext('2d'); var c=128;
+    var rg=g.createRadialGradient(c,c,52,c,c,70); rg.addColorStop(0,'rgba(5,5,12,1)'); rg.addColorStop(0.86,'rgba(5,5,12,1)'); rg.addColorStop(1,'rgba(5,5,12,0)');
+    g.fillStyle=rg; g.beginPath(); g.arc(c,c,70,0,6.2832); g.fill(); return new THREE.CanvasTexture(cv); })();
+  var moonDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex,depthWrite:false,depthTest:false,transparent:true,opacity:0}));
+  moonDisc.scale.set(1150,1150,1); moonDisc.layers.set(2); moonDisc.renderOrder=4; scene.add(moonDisc);
+
+  // diamond-ring flare — the brilliant sliver of photosphere at the edges of totality
+  var flareTex=(function(){ var cv=document.createElement('canvas'); cv.width=cv.height=256; var g=cv.getContext('2d'); var c=128;
+    var rg=g.createRadialGradient(c,c,0,c,c,46); rg.addColorStop(0,'rgba(255,255,255,1)'); rg.addColorStop(0.5,'rgba(255,250,232,0.6)'); rg.addColorStop(1,'rgba(255,250,232,0)');
+    g.fillStyle=rg; g.beginPath(); g.arc(c,c,46,0,6.2832); g.fill();
+    for(var k=0;k<4;k++){ g.save(); g.translate(c,c); g.rotate(k*Math.PI/2); var lg=g.createLinearGradient(0,0,124,0); lg.addColorStop(0,'rgba(255,255,255,0.9)'); lg.addColorStop(1,'rgba(255,255,255,0)'); g.strokeStyle=lg; g.lineWidth=3; g.beginPath(); g.moveTo(0,0); g.lineTo(124,0); g.stroke(); g.restore(); }
+    return new THREE.CanvasTexture(cv); })();
+  var flareSpr=new THREE.Sprite(new THREE.SpriteMaterial({map:flareTex,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,transparent:true,opacity:0}));
+  flareSpr.scale.set(900,900,1); flareSpr.layers.set(2); flareSpr.renderOrder=5; scene.add(flareSpr);
+
+  // planets that pop out at totality (Venus bright, Jupiter, ruddy Mars)
+  var PLANETS=[ {d:new THREE.Vector3(0.34,0.12,-0.93).normalize(),c:0xfff6e0,s:58},
+                {d:new THREE.Vector3(-0.55,0.34,-0.77).normalize(),c:0xfff0d6,s:42},
+                {d:new THREE.Vector3(0.66,0.30,-0.69).normalize(),c:0xffb28a,s:34} ];
+  var planetSprs=PLANETS.map(function(p){ var s=new THREE.Sprite(new THREE.SpriteMaterial({map:dotTex,color:p.c,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,transparent:true,opacity:0})); s.scale.set(p.s,p.s,1); s.layers.set(2); s.renderOrder=2; scene.add(s); return s; });
+
+  // ------------------------------------------------------------ drifting snowfall (atmosphere)
+  var SF=lowPower?350:700, sfp=new Float32Array(SF*3);
+  for(var i=0;i<SF;i++){ sfp[i*3]=(Math.random()-0.5)*300; sfp[i*3+1]=Math.random()*200-40; sfp[i*3+2]=(Math.random()-0.5)*300; }
+  var sfMat=new THREE.PointsMaterial({color:0xffffff,map:dotTex,size:2.2,sizeAttenuation:true,transparent:true,opacity:0.55,depthWrite:false});
+  var snowfall=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.BufferAttribute(sfp,3)),sfMat); snowfall.frustumCulled=false; scene.add(snowfall);
+
+  // ============================================================ rock & tussock (Cardrona-style treeless alpine)
+  var ROCKS=[];
+  var rockGeo=new THREE.IcosahedronGeometry(1.6,1);
+  var rockMesh=new THREE.InstancedMesh(rockGeo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.95,flatShading:true}),520);
+  (function(){ var m=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),pv=new THREE.Vector3(),tc=new THREE.Color(),eu=new THREE.Euler();
+    var placed=0,guard=0;
+    while(placed<520&&guard++<6000){ var zz=170+Math.random()*(RUNLEN-240), z=-zz, side=Math.random()<0.5?-1:1;
+      var off=PISTE+12+Math.pow(Math.random(),0.7)*130, x=spineX(z)+side*off;   // stay on the apron, off the steep walls
+      if(Math.abs(x)>TW*0.47) continue;
+      var s=0.6+Math.random()*2.2;
+      q.setFromEuler(eu.set(Math.random()*0.6,Math.random()*6.28,Math.random()*0.6));
+      sc.set(s*(0.8+Math.random()*0.7),s*(0.55+Math.random()*0.5),s*(0.8+Math.random()*0.7));
+      m.compose(pv.set(x,heightAt(x,z)+s*0.1,z),q,sc); rockMesh.setMatrixAt(placed,m);
+      tc.setHSL(0.08+Math.random()*0.04,0.08+Math.random()*0.10,0.26+Math.random()*0.16); rockMesh.setColorAt(placed,tc);
+      ROCKS.push({x:x,z:z,r:1.6*s}); placed++; }
+    rockMesh.instanceMatrix.needsUpdate=true; if(rockMesh.instanceColor) rockMesh.instanceColor.needsUpdate=true; })();
+  rockMesh.castShadow=!lowPower; scene.add(rockMesh);
+  // golden tussock breaking through the snow, thicker toward the valley
+  var tusGeo=new THREE.ConeGeometry(1.7,1.0,7); tusGeo.translate(0,0.4,0);   // low flat clumps, not tents
+  var tusMesh=new THREE.InstancedMesh(tusGeo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,flatShading:true}),900);
+  (function(){ var m=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),pv=new THREE.Vector3(),tc=new THREE.Color(),up=new THREE.Vector3(0,1,0);
+    var placed=0,guard=0;
+    while(placed<900&&guard++<9000){ var zz=RUNLEN*0.2+Math.random()*(RUNLEN*0.8-160), z=-zz, side=Math.random()<0.5?-1:1;
+      var off=PISTE+8+Math.random()*135, x=spineX(z)+side*off;                  // apron only, same as the rocks
+      if(Math.abs(x)>TW*0.47) continue;
+      var s=0.6+Math.random()*1.7;
+      sc.set(s,s*(0.35+Math.random()*0.4),s); q.setFromAxisAngle(up,Math.random()*6.28);
+      m.compose(pv.set(x,heightAt(x,z),z),q,sc); tusMesh.setMatrixAt(placed,m);
+      tc.setHSL(0.10+Math.random()*0.03,0.42+Math.random()*0.18,0.28+Math.random()*0.14); tusMesh.setColorAt(placed,tc);
+      placed++; }
+    tusMesh.instanceMatrix.needsUpdate=true; if(tusMesh.instanceColor) tusMesh.instanceColor.needsUpdate=true; })();
+  scene.add(tusMesh);
+
+  // ============================================================ slalom gates
+  var GATES=[], gateGroup=new THREE.Group(); scene.add(gateGroup);
+  var poleGeo=new THREE.CylinderGeometry(0.28,0.28,6,6); poleGeo.translate(0,3,0);
+  var flagGeo=new THREE.PlaneGeometry(3.4,2.2); flagGeo.translate(1.7,4.6,0);
+  (function(){ var zz=320,idx=0; while(zz<RUNLEN-320){ var z=-zz, sx=spineX(z), side=(idx%2===0)?-1:1, gx=sx+side*20, col=(idx%2===0)?0xe23b3b:0x2f7be0;
+    var pole=new THREE.Mesh(poleGeo,new THREE.MeshStandardMaterial({color:col,roughness:0.6,emissive:col,emissiveIntensity:0.15})); pole.position.set(gx,heightAt(gx,z),z);
+    var flag=new THREE.Mesh(flagGeo,new THREE.MeshStandardMaterial({color:col,side:THREE.DoubleSide,transparent:true,opacity:0.85,emissive:col,emissiveIntensity:0.2})); flag.position.copy(pole.position);
+    gateGroup.add(pole,flag); GATES.push({x:gx,z:z,passed:false,half:16}); zz+=150+Math.random()*120; idx++; } })();
+
+  // ============================================================ finish banner + eclipse coin
+  var finishZ=-(RUNLEN-90), finishGroup=new THREE.Group(); scene.add(finishGroup);
+  (function(){ var fx=spineX(finishZ), fy=heightAt(fx,finishZ);
+    var pg=new THREE.CylinderGeometry(0.6,0.6,9,8); pg.translate(0,4.5,0); var pm=new THREE.MeshStandardMaterial({color:0xd6ecff,roughness:0.5});
+    var pL=new THREE.Mesh(pg,pm),pR=new THREE.Mesh(pg,pm); pL.position.set(fx-34,fy,finishZ); pR.position.set(fx+34,fy,finishZ);
+    var band=new THREE.Mesh(new THREE.PlaneGeometry(72,6),new THREE.MeshStandardMaterial({color:0x101828,emissive:0x2a3a5a,emissiveIntensity:0.6,side:THREE.DoubleSide})); band.position.set(fx,fy+9.5,finishZ);
+    finishGroup.add(pL,pR,band);
+    var coin=new THREE.Group();
+    var halo=new THREE.Sprite(new THREE.SpriteMaterial({map:radial('rgba(255,210,130,0.8)','rgba(255,180,90,0.25)','rgba(255,180,90,0)'),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0.9})); halo.scale.set(46,46,1);
+    var disc=new THREE.Mesh(new THREE.CircleGeometry(8,48),new THREE.MeshStandardMaterial({color:0xffcf7a,emissive:0xffb347,emissiveIntensity:0.95,metalness:0.4,roughness:0.35,side:THREE.DoubleSide}));
+    var bite=new THREE.Mesh(new THREE.CircleGeometry(5.9,40),new THREE.MeshBasicMaterial({color:0x0a1024})); bite.position.set(3.1,1.6,0.05);
+    coin.add(halo,disc,bite); coin.position.set(fx,fy+16,finishZ); finishGroup.add(coin); window.__coin=coin; }
+  )();
+
+  // ------------------------------------------------------------ bullseye target (adventure)
+  var targetGroup=new THREE.Group(); targetGroup.visible=false; scene.add(targetGroup);
+  var targetCX=spineX(-TARGET_ZZ), targetCZ=-TARGET_ZZ, targetCY=heightAt(targetCX,targetCZ);
+  function buildTarget(r){
+    while(targetGroup.children.length){ var c=targetGroup.children.pop(); if(c.geometry)c.geometry.dispose(); }
+    var rings=[[0,r,0xe23b3b],[r*0.34,r*0.66,0xffffff],[0,r*0.34*0.5,0xe23b3b]];
+    // outer red, white mid, red bull
+    function ring(ri,ro,col){ var g=new THREE.RingGeometry(ri,ro,40); g.rotateX(-Math.PI/2); var m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.5,depthWrite:false})); m.position.set(targetCX,targetCY+0.12,targetCZ); targetGroup.add(m); }
+    ring(r*0.66,r,0xe23b3b); ring(r*0.34,r*0.66,0xf4f8ff); ring(0.001,r*0.34,0xe23b3b);
+    // glow beacon so it's readable at totality
+    var beam=new THREE.Sprite(new THREE.SpriteMaterial({map:radial('rgba(120,200,255,0.7)','rgba(120,200,255,0.2)','rgba(120,200,255,0)'),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0.8}));
+    beam.scale.set(r*3.4,r*3.4,1); beam.position.set(targetCX,targetCY+3,targetCZ); targetGroup.add(beam);
+  }
+
+  // ============================================================ the skier — a pro downhill racer
+  var RIG={}, skier=new THREE.Group();
+  (function buildSkier(){
+    var red=new THREE.MeshStandardMaterial({color:0xd51f26,roughness:0.42,metalness:0.02});   // lycra sheen
+    var blk=new THREE.MeshStandardMaterial({color:0x14161c,roughness:0.6});
+    var white=new THREE.MeshStandardMaterial({color:0xeef0f4,roughness:0.55});
+    var helm=new THREE.MeshStandardMaterial({color:0x0e1116,roughness:0.12,metalness:0.5});   // gloss carbon shell
+    var visorM=new THREE.MeshStandardMaterial({color:0x9a7a2e,roughness:0.06,metalness:0.95,emissive:0x241a06,emissiveIntensity:0.5});
+    var boot=new THREE.MeshStandardMaterial({color:0x262a33,roughness:0.42,metalness:0.15});
+    var buckle=new THREE.MeshStandardMaterial({color:0x39d0ff,roughness:0.3,metalness:0.4,emissive:0x0a2a33,emissiveIntensity:0.4});
+    var skiTop=new THREE.MeshStandardMaterial({color:0xffe14a,roughness:0.32,metalness:0.25});
+    var skiBase=new THREE.MeshStandardMaterial({color:0x0d0e11,roughness:0.5});
+    var poleM=new THREE.MeshStandardMaterial({color:0x2b3038,roughness:0.4,metalness:0.55});
+    function P(par,geo,mat,x,y,z,rx,ry,rz){ var m=new THREE.Mesh(geo,mat); m.position.set(x||0,y||0,z||0); m.rotation.set(rx||0,ry||0,rz||0); par.add(m); return m; }
+    var CYL=function(a,b,h,s){return new THREE.CylinderGeometry(a,b,h,s||10);}, BOX=function(w,h,d){return new THREE.BoxGeometry(w,h,d);}, SPH=function(r){return new THREE.SphereGeometry(r,14,12);};
+
+    // ---- board: skis, bindings, boots, legs (static athletic crouch) ----
+    var board=new THREE.Group(); skier.add(board);
+    [-0.52,0.52].forEach(function(sx){
+      P(board,BOX(0.34,0.05,5.0),skiBase,sx,0.03,0.1);            // base
+      P(board,BOX(0.36,0.08,5.0),skiTop,sx,0.10,0.1);             // top
+      P(board,BOX(0.12,0.09,5.0),blk,sx,0.16,0.1);                // graphic stripe
+      P(board,BOX(0.36,0.42,0.6),skiTop,sx,0.26,-2.2,-0.72);      // upturned tip
+      P(board,BOX(0.42,0.18,0.72),blk,sx,0.22,0.1);               // binding
+      P(board,BOX(0.46,0.6,1.04),boot,sx,0.55,0.05,0.3);          // boot shell
+      P(board,BOX(0.5,0.12,0.52),buckle,sx,0.72,0.16,0.3);        // buckle
+      P(board,BOX(0.48,0.5,0.55),boot,sx,0.96,-0.16,-0.12);       // forward-lean cuff
+      P(board,CYL(0.19,0.16,1.3,8),red,sx,1.4,-0.36,-0.45);       // shin
+      P(board,SPH(0.24),blk,sx,2.0,-0.56);                        // knee pad
+      P(board,CYL(0.28,0.22,1.25,8),red,sx*0.9,2.5,-0.18,0.42);   // thigh
+    });
+    // hips
+    var hips=new THREE.Group(); hips.position.set(0,2.95,-0.05); skier.add(hips); RIG.hips=hips; RIG.hipY=2.95;
+    P(hips,BOX(1.26,0.72,0.82),red); P(hips,BOX(1.3,0.2,0.86),blk,0,-0.3,0);
+
+    // ---- upper body (leans/flattens for the tuck) ----
+    var torso=new THREE.Group(); torso.position.set(0,0.18,0); hips.add(torso); RIG.torso=torso;
+    P(torso,CYL(0.64,0.5,1.0,12),red,0,0.55,0);                   // waist->chest
+    var chest=P(torso,SPH(0.72),red,0,1.15,-0.05); chest.scale.set(1.06,0.92,0.8);
+    P(torso,BOX(1.16,1.12,0.16),blk,0,0.95,0.42);                 // back panel
+    var bib=P(torso,BOX(1.02,1.28,0.06),white,0,0.98,0.52); bib.material=new THREE.MeshStandardMaterial({map:bibTex('7'),roughness:0.55});
+    P(torso,BOX(0.08,1.5,0.5),white,0.6,0.9,0); P(torso,BOX(0.08,1.5,0.5),white,-0.6,0.9,0); // side stripes
+    P(torso,SPH(0.34),red,0.66,1.55,-0.05); P(torso,SPH(0.34),red,-0.66,1.55,-0.05);         // shoulders
+
+    // arms reach forward, hands together (aero) — pivots animate the tuck
+    function arm(sx){ var g=new THREE.Group(); g.position.set(sx*0.66,1.55,-0.05); torso.add(g);
+      P(g,CYL(0.2,0.16,0.98,8),red,-sx*0.16,-0.22,-0.5,-0.95);    // upper arm
+      P(g,CYL(0.16,0.14,0.98,8),blk,-sx*0.32,-0.56,-1.16,-1.4);   // forearm
+      P(g,BOX(0.26,0.24,0.36),blk,-sx*0.4,-0.72,-1.62);           // glove
+      P(g,CYL(0.05,0.05,1.5,6),poleM,-sx*0.4,-0.55,-1.0,1.15);    // pole shaft (forward grip)
+      P(g,CYL(0.05,0.05,2.0,6),poleM,-sx*0.28,-0.12,0.35,1.95);   // pole sweep back
+      return g; }
+    RIG.armL=arm(-1); RIG.armR=arm(1);
+
+    // neck + head + aero helmet + goggles
+    var neck=new THREE.Group(); neck.position.set(0,1.52,-0.12); torso.add(neck); RIG.head=neck;
+    P(neck,CYL(0.22,0.24,0.42,8),blk,0,0.2,-0.16,-0.4);           // neck (balaclava)
+    P(neck,SPH(0.44),blk,0,0.56,-0.5);                            // head
+    var hel=P(neck,SPH(0.5),helm,0,0.6,-0.5); hel.scale.set(1.02,1.0,1.16); // aero helmet
+    P(neck,BOX(0.52,0.3,0.5),helm,0,0.6,-0.98,-0.18);            // aero tail
+    P(neck,BOX(0.88,0.32,0.16),blk,0,0.62,-0.86);                // goggle frame
+    P(neck,BOX(0.78,0.22,0.12),visorM,0,0.62,-0.94);             // tinted lens
+  })();
+  skier.scale.setScalar(0.9);
+  skier.traverse(function(o){ if(o.isMesh) o.castShadow=!lowPower; });
+  scene.add(skier);
+  var blob=new THREE.Mesh(new THREE.CircleGeometry(2.2,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.28,depthWrite:false})); blob.rotation.x=-Math.PI/2; scene.add(blob);
+
+  // ------------------------------------------------------------ snow spray pool
+  var SPRAY=lowPower?260:440, spr=new Float32Array(SPRAY*3), sprV=[], sprLife=new Float32Array(SPRAY);
+  for(var i=0;i<SPRAY;i++){ spr[i*3+1]=-9999; sprV.push(new THREE.Vector3()); sprLife[i]=0; }
+  var sprayGeo=new THREE.BufferGeometry(); sprayGeo.setAttribute('position',new THREE.BufferAttribute(spr,3));
+  var spray=new THREE.Points(sprayGeo,new THREE.PointsMaterial({color:0xffffff,map:dotTex,size:2.6,sizeAttenuation:true,transparent:true,opacity:0.9,depthWrite:false})); spray.frustumCulled=false; scene.add(spray);
+  var sprHead=0;
+  function emitSpray(px,py,pz,lat,back,n){ n=n||4; for(var k=0;k<n;k++){ var idx=sprHead%SPRAY; sprHead++;
+    spr[idx*3]=px; spr[idx*3+1]=py; spr[idx*3+2]=pz;
+    sprV[idx].set(lat*(0.5+Math.random())+(Math.random()-0.5)*5,3+Math.random()*6,back*(0.3+Math.random())+(Math.random()-0.5)*4); sprLife[idx]=0.5+Math.random()*0.45; } }
+
+  // ------------------------------------------------------------ carve tracks (instanced decals)
+  var TRACKN=160, trackGeo=new THREE.PlaneGeometry(1.6,3.4); trackGeo.rotateX(-Math.PI/2);
+  var trackMesh=new THREE.InstancedMesh(trackGeo,new THREE.MeshBasicMaterial({color:0x3a4d6b,transparent:true,opacity:0.32,depthWrite:false}),TRACKN); trackMesh.frustumCulled=false; scene.add(trackMesh);
+  (function(){ var m=new THREE.Matrix4(); m.makeTranslation(0,-9999,0); for(var i=0;i<TRACKN;i++) trackMesh.setMatrixAt(i,m); trackMesh.instanceMatrix.needsUpdate=true; })();
+  var trackHead=0, trackDist=0, _tm=new THREE.Matrix4(),_tq=new THREE.Quaternion(),_ts=new THREE.Vector3(1,1,1),_tp=new THREE.Vector3();
+  function dropTrack(x,y,z,head){ _tq.setFromAxisAngle(new THREE.Vector3(0,1,0),-head); _tp.set(x,y+0.12,z); _tm.compose(_tp,_tq,_ts); trackMesh.setMatrixAt(trackHead%TRACKN,_tm); trackHead++; trackMesh.instanceMatrix.needsUpdate=true; }
+  function clearTracks(){ var m=new THREE.Matrix4(); m.makeTranslation(0,-9999,0); for(var i=0;i<TRACKN;i++) trackMesh.setMatrixAt(i,m); trackMesh.instanceMatrix.needsUpdate=true; trackHead=0; trackDist=0; }
+
+  // ============================================================ snowballs (adventure obstacles)
+  var BALLN=28, ballGeo=new THREE.IcosahedronGeometry(1,0), ballMat=new THREE.MeshStandardMaterial({color:0xf2f7ff,roughness:0.85,flatShading:true});
+  var balls=[];
+  for(var i=0;i<BALLN;i++){ var mm=new THREE.Mesh(ballGeo,ballMat); mm.visible=false; scene.add(mm); balls.push({m:mm,on:false,vx:0,vz:0,r:3}); }
+  function spawnBall(diff){ for(var i=0;i<BALLN;i++){ var b=balls[i]; if(b.on) continue;
+    var z=S.z-150-Math.random()*70, r=2.6+Math.random()*1.7, x=spineX(z)+(Math.random()-0.5)*PISTE*1.7;
+    b.on=true; b.r=r; b.vz=-(5+Math.random()*7); b.vx=(Math.random()-0.5)*9*diff.ballLat;
+    b.m.visible=true; b.m.scale.setScalar(r); b.m.position.set(x,heightAt(x,z)+r,z); return; } }
+  function resetBalls(){ for(var i=0;i<BALLN;i++){ balls[i].on=false; balls[i].m.visible=false; } }
+
+  // ============================================================ procedural audio engine
+  var AUD={ctx:null,master:null,ready:false,muted:false,noiseBuf:null,windG:null,carveG:null,carveF:null,droneG:null,shimG:null};
+  function initAudio(){ if(AUD.ctx) return;
+    try{ var ctx=new (window.AudioContext||window.webkitAudioContext)(); AUD.ctx=ctx;
+      var master=ctx.createGain(); master.gain.value=AUD.muted?0:0.85; master.connect(ctx.destination); AUD.master=master;
+      var buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),d=buf.getChannelData(0); for(var i=0;i<d.length;i++) d[i]=Math.random()*2-1; AUD.noiseBuf=buf;
+      var wn=ctx.createBufferSource(); wn.buffer=buf; wn.loop=true; var wf=ctx.createBiquadFilter(); wf.type='lowpass'; wf.frequency.value=480; var wg=ctx.createGain(); wg.gain.value=0; wn.connect(wf); wf.connect(wg); wg.connect(master); wn.start(); AUD.windG=wg;
+      var cn=ctx.createBufferSource(); cn.buffer=buf; cn.loop=true; var cf=ctx.createBiquadFilter(); cf.type='bandpass'; cf.frequency.value=1500; cf.Q.value=0.7; var cg=ctx.createGain(); cg.gain.value=0; cn.connect(cf); cf.connect(cg); cg.connect(master); cn.start(); AUD.carveG=cg; AUD.carveF=cf;
+      var o1=ctx.createOscillator(); o1.type='sine'; o1.frequency.value=55; var o2=ctx.createOscillator(); o2.type='sine'; o2.frequency.value=55.4; var dg=ctx.createGain(); dg.gain.value=0; o1.connect(dg); o2.connect(dg); dg.connect(master); o1.start(); o2.start(); AUD.droneG=dg;
+      var sh=ctx.createOscillator(); sh.type='triangle'; sh.frequency.value=784; var sg=ctx.createGain(); sg.gain.value=0; sh.connect(sg); sg.connect(master); sh.start(); AUD.shimG=sg;
+      AUD.ready=true;
+    }catch(e){ AUD.ctx=null; } }
+  function tone(freq,dur,type,vol,delay,glide){ if(!AUD.ready) return; var ctx=AUD.ctx,t=ctx.currentTime+(delay||0);
+    var o=ctx.createOscillator(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t); if(glide) o.frequency.exponentialRampToValueAtTime(Math.max(1,glide),t+dur);
+    var g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.18,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(AUD.master); o.start(t); o.stop(t+dur+0.03); }
+  function noiseHit(dur,ftype,ffreq,vol){ if(!AUD.ready) return; var ctx=AUD.ctx,t=ctx.currentTime;
+    var n=ctx.createBufferSource(); n.buffer=AUD.noiseBuf; var f=ctx.createBiquadFilter(); f.type=ftype||'lowpass'; f.frequency.value=ffreq||700;
+    var g=ctx.createGain(); g.gain.setValueAtTime(vol||0.3,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); n.connect(f); f.connect(g); g.connect(AUD.master); n.start(t); n.stop(t+dur+0.03); }
+  function sfxJump(){ noiseHit(0.34,'bandpass',900,0.22); tone(300,0.3,'sine',0.1,0,780); }
+  function sfxLand(){ noiseHit(0.22,'lowpass',420,0.4); tone(150,0.14,'sine',0.13,0,85); }
+  function sfxHit(){ noiseHit(0.32,'lowpass',300,0.5); tone(210,0.26,'sawtooth',0.2,0,65); }
+  function sfxGate(){ tone(1250,0.08,'triangle',0.1,0,1550); }
+  function sfxSuccess(){ var n=[523,659,784,1047,1319]; for(var i=0;i<n.length;i++) tone(n[i],0.22,'triangle',0.16,i*0.12); }
+  function sfxLevelWin(){ var n=[659,784,988,1319,1568]; for(var i=0;i<n.length;i++) tone(n[i],0.26,'triangle',0.18,i*0.11); noiseHit(0.5,'highpass',3000,0.15); }
+  function sfxFail(){ var n=[392,330,262]; for(var i=0;i<n.length;i++) tone(n[i],0.32,'sawtooth',0.16,i*0.17); }
+  function sfxBull(){ tone(880,0.1,'triangle',0.18,0,1320); tone(1320,0.18,'triangle',0.16,0.09); }
+  document.getElementById('mute').addEventListener('click',function(){ AUD.muted=!AUD.muted; this.textContent=AUD.muted?'🔇':'🔊'; if(AUD.master) AUD.master.gain.value=AUD.muted?0:0.85; });
+
+  // ============================================================ state
+  var SIM_DIFF={key:'sim',spd:1,hearts:Infinity,ballInterval:1e9,ballCount:0,ballLat:0,targetR:22,label:'free ride'};
+  var DIFFS={
+    green:{key:'green',spd:1.0, hearts:5,ballInterval:230,ballCount:1,ballLat:0.7,targetR:24,label:'Green · easy'},
+    blue: {key:'blue', spd:1.15,hearts:4,ballInterval:170,ballCount:2,ballLat:1.0,targetR:17,label:'Blue · steeper'},
+    black:{key:'black',spd:1.32,hearts:3,ballInterval:120,ballCount:2,ballLat:1.4,targetR:12,label:'Black · expert'}
+  };
+  var diff=SIM_DIFF;
+  var S={ x:0,z:0,y:0,vy:0, head:0,headTarget:0, speed:8, airborne:false, roll:0, crash:0, invuln:0, jumpCd:0,
+          gates:0, dodged:0, hearts:Infinity, airStart:0,airAccum:0,bestAir:0, prevZZ:0,
+          mode:'sim', started:false, finished:false, failed:false, landRating:'', manualEcl:0, shake:0, toastT:0, tuckA:0 };
+  var topSpeed=0, curPhase=0, eclT=0;
+  // The eclipse clock (BOTH modes, per Mitch): the moon takes its bite fast — 30s to a deep partial —
+  // then eases slowly into totality over another 30s, HOLDS totality for 45s (the peak is the point:
+  // long enough to ride inside it), releases over 30s, and loops. 135s full cycle. E fast-forwards.
+  var ECL={up1:30,up2:30,hold:45,down:30}; ECL.T=ECL.up1+ECL.up2+ECL.hold+ECL.down;
+  function eclipseCycle(t){ var u=t%ECL.T;
+    if(u<ECL.up1) return 0.75*smoothstep(u/ECL.up1,0,1);               // fast: day -> deep partial
+    u-=ECL.up1; if(u<ECL.up2) return 0.75+0.25*smoothstep(u/ECL.up2,0,1); // slow drift into totality
+    u-=ECL.up2; if(u<ECL.hold) return 1;                               // totality holds
+    u-=ECL.hold; return 1-smoothstep(u/ECL.down,0,1); }                // release, then loop
+
+  function reset(){
+    S.x=spineX(0); S.z=-6; S.y=heightAt(S.x,S.z)+SKI_OFF; S.vy=0; S.prevZZ=6;
+    S.head=0; S.headTarget=0; S.speed=8; S.airborne=false; S.roll=0; S.crash=0; S.invuln=0; S.jumpCd=0;
+    S.gates=0; S.dodged=0; S.airAccum=0; S.bestAir=0; S.finished=false; S.failed=false; S.manualEcl=0; S.shake=0; S.landRating=''; S.toastT=0;
+    S.hearts=diff.hearts; topSpeed=0; lastBallZ=0; eclT=0;
+    for(var i=0;i<GATES.length;i++) GATES[i].passed=false;
+    resetBalls(); clearTracks();
+    document.getElementById('finish').style.display='none';
+    document.getElementById('fail').style.display='none';
+    camera.position.set(S.x,S.y+7,S.z+20);
+    updateHeartsHUD();
+  }
+  function updateHeartsHUD(){ var el=document.getElementById('h-hearts');
+    if(S.mode!=='adv'){ el.style.display='none'; return; } el.style.display='block';
+    var s=''; for(var i=0;i<diff.hearts;i++) s+= (i<S.hearts?'♥':'♡')+' '; el.textContent=s.trim(); }
+  function toast(txt,dur){ var el=document.getElementById('h-toast'); el.textContent=txt; S.toastT=dur||1.4; }
+
+  // ------------------------------------------------------------ begin / menu
+  function begin(mode,key){
+    S.mode=mode; diff = mode==='adv'? DIFFS[key] : SIM_DIFF;
+    targetGroup.visible = (mode==='adv'); if(mode==='adv') buildTarget(diff.targetR);
+    document.getElementById('h-countlab').textContent = mode==='adv'?'DODGED':'GATES';
+    reset(); S.started=true;
+    document.getElementById('start').style.display='none';
+    initAudio(); if(AUD.ctx&&AUD.ctx.state==='suspended') AUD.ctx.resume();
+    if(mode==='adv') toast(diff.label.split(' ')[0].toUpperCase()+' — DODGE, THEN STICK THE LANDING',2.4);
+  }
+  function showMenu(){ S.started=false; S.finished=false; S.failed=false;
+    document.getElementById('finish').style.display='none'; document.getElementById('fail').style.display='none';
+    document.getElementById('start').style.display='flex'; document.getElementById('diff-row').style.display='none'; }
+  document.getElementById('m-sim').addEventListener('click',function(){ begin('sim'); });
+  document.getElementById('m-adv').addEventListener('click',function(){ document.getElementById('diff-row').style.display='flex'; });
+  var dbs=document.querySelectorAll('.diffbtn'); for(var i=0;i<dbs.length;i++){ dbs[i].addEventListener('click',function(){ begin('adv',this.getAttribute('data-d')); }); }
+
+  // ------------------------------------------------------------ input
+  var keys={};
+  addEventListener('keydown',function(e){ keys[e.code]=true;
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].indexOf(e.code)>=0) e.preventDefault();
+    if(e.code==='KeyR'&&S.started) reset();
+    if(e.code==='KeyM') showMenu();
+    if(!S.started){ if(e.code==='Digit1') begin('sim'); if(e.code==='Space'||e.code==='Enter') begin('sim'); } });
+  addEventListener('keyup',function(e){ keys[e.code]=false; });
+  var ptrSteer=0, ptrTuck=false, ptrJump=false, ptrActive=false;
+  function ptr(e){ var r=canvas.getBoundingClientRect(); var nx=((e.clientX-r.left)/r.width)*2-1; ptrSteer=clamp(nx*1.5,-1,1); }
+  canvas.addEventListener('pointerdown',function(e){ ptrActive=true; ptrTuck=true; ptr(e); });
+  canvas.addEventListener('pointermove',function(e){ if(ptrActive) ptr(e); });
+  addEventListener('pointerup',function(){ ptrActive=false; ptrTuck=false; ptrSteer=0; });
+  var tuckBtn=document.getElementById('tuckbtn');
+  tuckBtn.addEventListener('pointerdown',function(e){ e.stopPropagation(); ptrTuck=true; });
+  tuckBtn.addEventListener('pointerup',function(e){ e.stopPropagation(); ptrTuck=false; });
+  var jumpBtn=document.getElementById('jumpbtn');
+  jumpBtn.addEventListener('pointerdown',function(e){ e.stopPropagation(); ptrJump=true; });
+  jumpBtn.addEventListener('pointerup',function(e){ e.stopPropagation(); ptrJump=false; });
+
+  // touch devices: keyboard hints make no sense, and the post-run overlays need tap buttons
+  var isTouch=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window);
+  if(isTouch) document.getElementById('s-hint').textContent='drag left / right to steer · hold TUCK for speed · tap JUMP over rocks';
+  [['fin-again',function(){reset();}],['fin-menu',showMenu],['fail-again',function(){reset();}],['fail-menu',showMenu]]
+    .forEach(function(b){ var el=document.getElementById(b[0]); if(el) el.addEventListener('click',function(e){ e.stopPropagation(); b[1](); }); });
+
+  // ============================================================ eclipse driver
+  var now=0;
+  function applyEclipse(phase){ phase=clamp(phase,0,1);
+    var dim=1-0.94*Math.pow(phase,1.3);
+    sun.intensity=1.35*dim; fill.intensity=0.22*dim+0.02; sky.intensity=0.72*dim+0.06; sun.color.setHSL(0.09,0.65*phase,1.0);
+    renderer.toneMappingExposure=1.0-0.24*phase;                      // the world's film stock closes down
+    var c=DAY.clone().lerp(NIGHT,Math.min(1,phase*1.12));
+    // horizon convergence: fog, ridge silhouettes, and the sky's bottom gradient meet at ONE colour, so
+    // fully-fogged terrain melts into ridges and sky with no visible band (per the edge-verifier's finding)
+    var fogc=HORIZON.clone().lerp(NIGHT,Math.min(1,phase*1.12)).lerp(DUSK,smoothstep(phase,0.7,0.98)*0.55);
+    scene.background.copy(fogc); scene.fog.color.copy(fogc);
+    scene.fog.near=700-400*phase; scene.fog.far=6200-2600*phase; skyMat.uniforms.uPhase.value=phase;
+    starMatA.opacity=smoothstep(phase,0.5,0.9)*0.95; starMatB.opacity=smoothstep(phase,0.45,0.85);
+    glintMat.opacity=smoothstep(phase,0.3,0.7)*0.5*(1-phase*0.5);
+    sfMat.opacity=0.25+0.15*phase;
+    ridgeFar.color.copy(fogc).lerp(new THREE.Color(0xffffff),0.06);   // a breath lighter than the haze behind it
+    ridgeNear.color.copy(fogc);                                       // exactly the saturated-fog colour — seamless base
+    // the moon's bite grows across the whole run; full cover just before the finish
+    var cover=clamp(0.12+0.88*(phase/0.94),0,1); if(phase>=0.94) cover=1;
+    if(Math.abs(cover-lastCover)>0.004){ lastCover=cover; drawEclipsedSun(cover); }
+    var sunPos=SUNDIR.clone().multiplyScalar(SUNDIST).add(camera.position);
+    sunSpr.position.copy(sunPos); coronaSpr.position.copy(sunPos); coronaSpr2.position.copy(sunPos); moonDisc.position.copy(sunPos);
+    flareSpr.position.copy(sunPos).addScaledVector(SUN_PERP, 300);   // the diamond sits on the moon's limb
+    moonDisc.material.opacity=smoothstep(cover,0.88,1.0);            // the black moon fills in as totality completes
+    var tot=smoothstep(phase,0.84,0.95);
+    coronaSpr.material.opacity=tot; coronaSpr.scale.setScalar(2200+900*tot+90*Math.sin(now*2));
+    coronaSpr2.material.opacity=tot*0.7; coronaSpr2.scale.setScalar(3800+1500*tot+150*Math.sin(now*1.3+1.0));
+    // diamond ring: a brilliant flare as the last/first sliver of photosphere vanishes and returns
+    var dr=(cover<0.994)?Math.exp(-Math.pow((cover-0.955)/0.03,2.0)):0.0;
+    flareSpr.material.opacity=dr; flareSpr.scale.setScalar(750+650*dr);
+    sunSpr.material.opacity=1-0.82*tot; tmat.color.setHSL(0.6,0.03+0.15*phase,1.0-0.18*phase);
+    // Milky Way + planets rise as the light fails
+    var deep=smoothstep(phase,0.6,0.95);
+    galaxy.visible=deep>0.01; galaxyMat.uniforms.uAmt.value=deep*0.9;
+    for(var pi=0;pi<planetSprs.length;pi++){ planetSprs[pi].position.copy(PLANETS[pi].d).multiplyScalar(SUNDIST).add(camera.position); planetSprs[pi].material.opacity=deep*(pi===0?1.0:0.8); }
+    if(useBloom) bloomPass.strength = 0.14 + 1.15*phase;
+  }
+
+  // ============================================================ collisions
+  // hard = ploughed into a rock (stop dead, tumble, dig out); soft = clipped by a snowball (knocked, keeps sliding)
+  function hitObstacle(hard){ if(S.invuln>0||S.crash>0) return; sfxHit();
+    S.shake=Math.min(1,S.shake+(hard?1.0:0.7)); emitSpray(S.x,S.y-0.6,S.z,0,0,hard?14:8);
+    if(hard){ S.speed=0; S.crash=1.5; toast('OUCH — STUCK',1.0); }   // rock: full stop + brief stuck, then digs out
+    else { S.speed*=0.5; S.crash=0.45; }
+    if(S.mode==='adv'){ S.hearts--; S.invuln=Math.max(S.invuln,S.crash+0.4); updateHeartsHUD(); document.getElementById('flash').style.opacity='0.6';
+      if(S.hearts<=0) failRun(); else if(!hard) toast('-1 ♥',0.8); } }
+  function failRun(){ S.failed=true; sfxFail();
+    document.getElementById('fail-stats').innerHTML='made it to <b>'+Math.round(TOP_ALT+S.y)+' m</b> · dodged <b>'+S.dodged+'</b> · top speed <b>'+Math.round(topSpeed*3.6)+' km/h</b>';
+    document.getElementById('fail').style.display='flex'; }
+
+  // ============================================================ main loop
+  var clock=new THREE.Clock(), running=true, lastBallZ=0;
+  var camDes=new THREE.Vector3(), lookAt=new THREE.Vector3();
+  var $spd=document.getElementById('h-spd'),$alt=document.getElementById('h-alt'),$phase=document.getElementById('h-phase'),
+      $hdg=document.getElementById('h-hdg'),$count=document.getElementById('h-count'),$prog=document.getElementById('h-prog'),
+      $air=document.getElementById('h-air'),$lines=document.getElementById('speedlines'),$toast=document.getElementById('h-toast'),$flash=document.getElementById('flash');
+  var PHASE_LABELS=[[0,'first contact'],[0.25,'partial'],[0.5,'deep partial'],[0.75,'the light goes strange'],[0.9,'diamond ring'],[0.97,'TOTALITY']];
+  reset();
+
+  function update(dt){
+    now+=dt;
+    if(window.__coin) window.__coin.rotation.y+=dt*0.9;
+    var moving=S.started&&!S.finished&&!S.failed;
+
+    // steering
+    var steer=0; if(keys.ArrowLeft) steer-=1; if(keys.ArrowRight) steer+=1; steer+=ptrSteer; steer=clamp(steer,-1,1);
+    var checking=(keys.ArrowDown?1:0);
+    var tuck=(keys.ArrowUp||keys.KeyW||ptrTuck)?1:0;
+    var jump=(keys.Space||keys.KeyK||ptrJump)?1:0;
+    if(moving&&S.crash<=0) S.headTarget=steer*(0.62+0.55*checking);
+    var authority=S.airborne?0.4:1.0;
+    S.head=lerp(S.head,S.headTarget*authority,1-Math.pow(0.0009,dt));
+    if(S.crash>0){ S.crash-=dt; S.head+=Math.sin(now*22)*dt*1.4;
+      if(jump&&S.jumpCd<=0){ S.crash=0; S.airborne=true; S.vy=9+Math.max(S.speed,8)*0.06; S.speed=Math.max(S.speed,9); S.jumpCd=0.5; sfxJump(); toast('DUG OUT',0.8); } // jump clears a rock stick early
+    }
+    if(S.invuln>0) S.invuln-=dt;
+    if(S.jumpCd>0) S.jumpCd-=dt;
+
+    // speed
+    var ch=Math.cos(S.head), sh=Math.sin(S.head);
+    var target=(24+15*tuck)*(0.22+0.78*Math.abs(ch))*diff.spd - checking*10;
+    if(S.crash>0){ target=0.4; } else { target=Math.max(3,target); }   // rock stop holds the skier nearly still
+    if(!S.airborne) S.speed=lerp(S.speed,target,1-Math.pow(S.crash>0?0.001:(tuck?0.35:0.12),dt));
+
+    // integrate downhill
+    if(moving){ S.x+=sh*S.speed*dt; S.z+=-Math.abs(ch)*S.speed*dt; }
+
+    // vertical: hug piste, launch off lips, land + target rating
+    var groundY=heightAt(S.x,S.z)+SKI_OFF, curZZ=-S.z;
+    if(S.airborne){ S.vy-=22*dt; S.y+=S.vy*dt; S.airAccum+=dt;
+      if(S.y<=groundY){ S.y=groundY;
+        if(S.vy<-16){ S.speed*=0.9; emitSpray(S.x,groundY,S.z,0,0,6); S.shake=Math.min(1,S.shake+0.25); }
+        sfxLand(); S.airborne=false; S.bestAir=Math.max(S.bestAir,S.airAccum); S.airAccum=0; S.vy=0;
+        // target landing (adventure)
+        if(S.mode==='adv'&&!S.landRating&&Math.abs(curZZ-TARGET_ZZ)<diff.targetR+16){
+          var dd=Math.hypot(S.x-targetCX,S.z-targetCZ);
+          if(dd<diff.targetR*0.34){ S.landRating='BULLSEYE'; sfxBull(); toast('★ BULLSEYE ★',1.8); }
+          else if(dd<diff.targetR*0.7){ S.landRating='GREAT LANDING'; sfxBull(); toast('GREAT LANDING',1.6); }
+          else if(dd<diff.targetR){ S.landRating='ON TARGET'; toast('ON TARGET',1.4); }
+          else { S.landRating='OFF TARGET'; toast('off target…',1.2); }
+        }
+      }
+    } else { S.y=groundY;
+      if(jump&&moving&&S.crash<=0&&S.jumpCd<=0){ S.airborne=true; S.vy=10.5+S.speed*0.06; S.jumpCd=0.5; sfxJump(); } // manual hop — clears rocks & snowballs
+      if(!S.airborne&&moving&&S.speed>17){ for(var ki=0;ki<KICKERS.length;ki++){ if(S.prevZZ<KICKERS[ki]&&curZZ>=KICKERS[ki]&&Math.abs(S.x-spineX(S.z))<PISTE*1.3){ S.airborne=true; S.vy=4+S.speed*0.34; sfxJump(); break; } }
+        if(!S.airborne&&S.prevZZ<FINAL_KICK&&curZZ>=FINAL_KICK&&Math.abs(S.x-spineX(S.z))<PISTE*1.5){ S.airborne=true; S.vy=6+S.speed*0.42; sfxJump(); if(S.mode==='adv') toast('STICK THE LANDING!',1.2); } }
+    }
+    S.prevZZ=curZZ;
+
+    // rocks — only when actually on the ground (you can jump over them)
+    if(moving&&!S.airborne&&S.crash<=0&&S.invuln<=0){ for(var i=0;i<ROCKS.length;i++){ var t=ROCKS[i]; var dz=t.z-S.z;
+      if(dz>-4&&dz<4){ var ddx=t.x-S.x, rr=t.r+1.4; if(ddx*ddx+dz*dz<rr*rr){ hitObstacle(true); break; } } } }
+
+    // snowballs (adventure)
+    if(S.mode==='adv'&&moving){
+      if(curZZ<RUNLEN-360 && S.z < lastBallZ - diff.ballInterval){ lastBallZ=S.z; for(var b=0;b<diff.ballCount;b++) spawnBall(diff); }
+      for(var i=0;i<BALLN;i++){ var bl=balls[i]; if(!bl.on) continue;
+        bl.m.position.x+=bl.vx*dt; bl.m.position.z+=bl.vz*dt; bl.m.position.y=heightAt(bl.m.position.x,bl.m.position.z)+bl.r;
+        bl.m.rotation.x+=dt*bl.vz*-0.3; bl.m.rotation.z+=dt*bl.vx*0.3;
+        var dz=bl.m.position.z-S.z, dx=bl.m.position.x-S.x;
+        if(bl.m.position.z>S.z+18 || Math.abs(bl.m.position.x-spineX(bl.m.position.z))>PISTE*3.2){ bl.on=false; bl.m.visible=false; S.dodged++; continue; }
+        if(S.invuln<=0 && dx*dx+dz*dz < (bl.r+1.5)*(bl.r+1.5) && Math.abs(S.y-bl.m.position.y)<bl.r+2.2){ bl.on=false; bl.m.visible=false; hitObstacle(false); }
+      }
+    }
+
+    // gates
+    for(var i=0;i<GATES.length;i++){ var g=GATES[i]; if(!g.passed&&S.z<g.z+2&&S.z>g.z-6){ if(Math.abs(S.x-g.x)<g.half){ g.passed=true; S.gates++; if(S.mode!=='adv') sfxGate(); } } }
+
+    // spray + tracks while carving
+    if(moving&&!S.airborne&&S.crash<=0){
+      if(S.speed>10&&Math.abs(sh)>0.16) emitSpray(S.x,S.y-SKI_OFF+0.2,S.z,-sh*S.speed*0.28,Math.abs(ch)*S.speed*0.15, Math.abs(sh)>0.5?5:3);
+      trackDist+=S.speed*dt; if(trackDist>2.4){ trackDist=0; dropTrack(S.x,heightAt(S.x,S.z),S.z,S.head); }
+    }
+    for(var i=0;i<SPRAY;i++){ if(sprLife[i]>0){ sprLife[i]-=dt; spr[i*3]+=sprV[i].x*dt; spr[i*3+1]+=sprV[i].y*dt; spr[i*3+2]+=sprV[i].z*dt; sprV[i].y-=14*dt; if(sprLife[i]<=0) spr[i*3+1]=-9999; } }
+    sprayGeo.attributes.position.needsUpdate=true;
+
+    // skier mesh + pro-tuck pose rig
+    skier.position.set(S.x,S.y,S.z); skier.rotation.y=-S.head;
+    S.roll=lerp(S.roll,-S.head*0.9-(S.airborne?0:sh*0.3),1-Math.pow(0.01,dt));
+    if(S.crash>0){ skier.rotation.z=S.roll+Math.sin(now*20)*0.35; skier.rotation.x=0.55+Math.sin(now*14)*0.12; } // tumble / dig out
+    else { skier.rotation.z=S.roll; skier.rotation.x=S.airborne?-0.1:0.04; }
+    S.tuckA=lerp(S.tuckA,(S.airborne?0.45:tuck),1-Math.pow(0.02,dt)); var ta=S.tuckA;
+    RIG.torso.rotation.x=-(0.34+0.95*ta)+(checking?0.16:0);        // flatten the back toward horizontal in the tuck
+    RIG.head.rotation.x=(0.34+0.95*ta)*0.86-0.04;                  // keep the head/eyes downhill
+    RIG.armL.rotation.x=-(0.08+0.7*ta); RIG.armR.rotation.x=-(0.08+0.7*ta); // pin arms forward
+    RIG.hips.position.y=RIG.hipY-0.34*ta;                          // sink into the tuck
+    var vis=(S.invuln>0)?(Math.floor(now*18)%2===0):true; skier.visible=vis;
+    blob.position.set(S.x,heightAt(S.x,S.z)+0.15,S.z);
+    var bs=S.airborne?clamp(1-(S.y-groundY)/40,0.3,1):1; blob.scale.setScalar(bs); blob.material.opacity=0.28*bs;
+
+    // eclipse driver — the SAME real-time cycle in both modes (E fast-forwards); Adventure only adds
+    // obstacles on top of the identical world. Modes are rule-sets, the atmosphere is the identity.
+    var descProg=clamp(-S.z/RUNLEN,0,1);
+    if(S.started) eclT+=dt*(keys.KeyE?8:1);
+    curPhase=eclipseCycle(eclT);
+    applyEclipse(curPhase);
+
+    // snowfall follows camera, drifts down
+    snowfall.position.copy(camera.position);
+    for(var i=0;i<SF;i++){ sfp[i*3+1]-=(9+ (i%5))*dt; sfp[i*3]+=2*dt; if(sfp[i*3+1]<-60) sfp[i*3+1]+=200; if(sfp[i*3]>150) sfp[i*3]-=300; }
+    snowfall.geometry.attributes.position.needsUpdate=true;
+
+    // camera chase (+ speed bob)
+    if(S.started){ var dirX=Math.sin(S.head), dirZ=-Math.abs(Math.cos(S.head)), speedK=clamp(S.speed/40,0,1);
+      // elevated chase: ~32 degrees above-behind the skier (h/d ~= 0.62), pitched gently DOWN (~11deg)
+      // at a far look-at near skier height — reads "from above" with the run ahead readable, while the
+      // horizon stays upper-third so the sky and eclipse own the top of frame. Not level (butt-cam), not top-down.
+      var dist=11+4*speedK, camH=7.5+1.6*tuck;
+      camDes.set(S.x-dirX*dist, S.y+camH+(S.airborne?0:Math.sin(now*12)*0.2*speedK), S.z-dirZ*dist);
+      if(S.shake>0){ S.shake-=dt*2; camDes.x+=(Math.random()-0.5)*S.shake*2.4; camDes.y+=(Math.random()-0.5)*S.shake*2.4; }
+      camera.position.lerp(camDes,1-Math.pow(0.0016,dt));
+      lookAt.set(S.x+dirX*24, S.y+0.6+1.6*tuck, S.z+dirZ*24); camera.lookAt(lookAt);   // camH and look-at rise together in the tuck, so pitch holds steady
+      var fovT=BASE_FOV+16*tuck*speedK+6*speedK; camera.fov+=(fovT-camera.fov)*(1-Math.pow(0.02,dt)); camera.updateProjectionMatrix();
+    }
+    skyRig.position.copy(camera.position); ridgeG.position.copy(camera.position);
+    coronaSpr.material.rotation+=dt*0.02; coronaSpr2.material.rotation-=dt*0.013; // the two corona layers counter-rotate
+    if(sun.castShadow){ sun.position.copy(skier.position).addScaledVector(SUNDIR,900); // shadow frustum tracks the racer
+      sun.target.position.copy(skier.position); sun.target.updateMatrixWorld(); }
+
+    // audio
+    if(AUD.ready){
+      var windT=moving?clamp(S.speed/44,0,1)*0.22:0.015; AUD.windG.gain.value+=(windT-AUD.windG.gain.value)*Math.min(1,dt*4);
+      var carveT=(moving&&!S.airborne)?clamp(S.speed/30,0,1)*(0.12+0.88*Math.abs(sh)):0; AUD.carveG.gain.value+=(carveT*0.32-AUD.carveG.gain.value)*Math.min(1,dt*8);
+      AUD.carveF.frequency.value=1000+S.speed*40+Math.abs(sh)*1200;
+      var droneT=smoothstep(curPhase,0.5,1.0)*0.09; AUD.droneG.gain.value+=(droneT-AUD.droneG.gain.value)*Math.min(1,dt*2);
+      var shimT=smoothstep(curPhase,0.85,1.0)*0.035; AUD.shimG.gain.value+=(shimT-AUD.shimG.gain.value)*Math.min(1,dt*2);
+    }
+
+    // base of the run
+    if(!S.finished&&!S.failed&&-S.z>=RUNLEN-95){
+      if(S.mode==='sim'){
+        // endless roam: wrap back to the summit; the eclipse keeps its own clock
+        var oldY=S.y; S.z+=RUNLEN-89; S.prevZZ=-S.z;
+        S.y=heightAt(S.x,S.z)+SKI_OFF;
+        camera.position.z+=RUNLEN-89; camera.position.y+=S.y-oldY;   // carry the chase cam so there's no swoop
+        for(var i=0;i<GATES.length;i++) GATES[i].passed=false;
+        clearTracks(); toast('ANOTHER LAP',1.2);
+      } else { S.finished=true;
+        document.getElementById('finish-title').innerHTML='Run<br>complete';
+        var rate=S.landRating||'FINISHED';
+        document.getElementById('finish-stats').innerHTML='landing <b>'+rate+'</b> &nbsp;·&nbsp; ♥ <b>'+Math.max(0,S.hearts)+'/'+diff.hearts+'</b> &nbsp;·&nbsp; dodged <b>'+S.dodged+'</b> &nbsp;·&nbsp; top <b>'+Math.round(topSpeed*3.6)+' km/h</b>';
+        sfxLevelWin();
+        document.getElementById('finish').style.display='flex';
+      }
+    }
+
+    // HUD
+    topSpeed=Math.max(topSpeed,S.speed);
+    $spd.textContent=Math.round(S.speed*3.6); $alt.textContent=Math.round(TOP_ALT+S.y);
+    $count.textContent = S.mode==='adv'? S.dodged : S.gates;
+    $prog.style.height=((S.mode==='sim'?curPhase:descProg)*100).toFixed(0)+'%';   // sim: eclipse clock; adv: descent
+    var lbl=PHASE_LABELS[0][1]; for(var i=0;i<PHASE_LABELS.length;i++){ if(curPhase>=PHASE_LABELS[i][0]) lbl=PHASE_LABELS[i][1]; } $phase.textContent=lbl;
+    $hdg.textContent=Math.abs(S.head)<0.12?'FALL LINE':(S.head<0?'CARVE LEFT':'CARVE RIGHT');
+    $lines.style.opacity=clamp((S.speed-26)/22,0,1)*0.9;
+    if(S.toastT>0){ S.toastT-=dt; $toast.style.opacity=clamp(S.toastT*1.4,0,1); } else $toast.style.opacity=0;
+    $flash.style.opacity=Math.max(0, parseFloat($flash.style.opacity||0)-dt*3);
+    if(S.airborne&&S.airAccum>0.25){ $air.style.opacity=1; $air.textContent=S.airAccum.toFixed(1)+'s AIR'; } else $air.style.opacity=Math.max(0,parseFloat($air.style.opacity||0)-dt*3);
+  }
+
+  function frame(){ if(!running) return; requestAnimationFrame(frame); var dt=Math.min(clock.getDelta(),0.05); update(dt);
+    if(useBloom) composer.render(); else renderer.render(scene,camera); }
+
+  function onResize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); if(useBloom) composer.setSize(innerWidth,innerHeight); }
+  var rt; addEventListener('resize',function(){ clearTimeout(rt); rt=setTimeout(onResize,150); }); onResize();
+  document.addEventListener('visibilitychange',function(){ running=!document.hidden; if(running){ clock.getDelta(); frame(); } });
+
+  frame();
+})();
+</script>
+</body>
+</html>
