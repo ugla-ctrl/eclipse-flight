@@ -2,487 +2,118 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Iceland Eclipse Flight</title>
-<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
-<link rel="alternate icon" href="assets/favicon-180.png"/>
-<link rel="apple-touch-icon" href="assets/favicon-180.png"/>
-<meta name="description" content="Fly the Snæfellsnes cover and experience the scene from above the land as we enter Totality"/>
-<!-- Open Graph / social share card -->
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>Eclipse Flight — three eclipse simulators</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0a14'/%3E%3Ccircle cx='16' cy='16' r='8.5' fill='none' stroke='%23ffcf7a' stroke-width='2.2'/%3E%3Ccircle cx='16' cy='16' r='5.4' fill='%230a0a14'/%3E%3C/svg%3E"/>
+<meta name="description" content="Three total solar eclipses, three machines. Fly the Snæfellsnes coast, drift a balloon over Luxor, carve the Cardrona high country — each beneath a real, computed totality."/>
 <meta property="og:type" content="website"/>
-<meta property="og:title" content="Iceland Eclipse Flight"/>
-<meta property="og:description" content="Fly the Snæfellsnes cover and experience the scene from above the land as we enter Totality"/>
-<meta property="og:image" content="https://infin8lee.github.io/flightsimulator-iceland/assets/og.jpg"/>
-<meta property="og:image:width" content="1200"/>
-<meta property="og:image:height" content="630"/>
-<meta property="og:url" content="https://infin8lee.github.io/flightsimulator-iceland/"/>
+<meta property="og:title" content="Eclipse Flight — chase the shadow"/>
+<meta property="og:description" content="Three total solar eclipses, three machines: fly Iceland 2026, drift Luxor 2027, carve New Zealand 2028."/>
+<meta property="og:url" content="https://eclipseflight.com/"/>
+<meta property="og:image" content="https://eclipseflight.com/assets/menu/egypt.jpg"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Iceland Eclipse Flight"/>
-<meta name="twitter:description" content="Fly the Snæfellsnes cover and experience the scene from above the land as we enter Totality"/>
-<meta name="twitter:image" content="https://infin8lee.github.io/flightsimulator-iceland/assets/og.jpg"/>
+<meta name="twitter:title" content="Eclipse Flight — chase the shadow"/>
+<meta name="twitter:description" content="Three total solar eclipses, three machines: fly Iceland 2026, drift Luxor 2027, carve New Zealand 2028."/>
+<meta name="twitter:image" content="https://eclipseflight.com/assets/menu/egypt.jpg"/>
 <style>
-  html,body{margin:0;height:100%;background:#05060a;overflow:hidden;font-family:'Space Grotesk',system-ui,sans-serif}
-  #fwrap{position:relative;width:100vw;height:100vh;height:100dvh}
-  canvas{display:block;width:100%;height:100%;outline:none;touch-action:none;-webkit-user-select:none;user-select:none}
-  .h{position:absolute;inset:0;pointer-events:none;z-index:5}
-  .g{color:#7CFCB4;text-shadow:0 0 8px rgba(60,220,140,.5)}
-  /* mobile only — never affects the desktop layout */
-  @media (max-width:680px){#f-title{font-size:34px!important}#f-sub{font-size:13px!important;max-width:30ch!important}#f-spd,#f-alt{font-size:24px!important}}
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300&family=Space+Grotesk:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Space+Grotesk:wght@300;400;500&display=swap');
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#07080f;font-family:'Space Grotesk',system-ui,sans-serif;color:#e8edf6}
+  body{display:flex;flex-direction:column;min-height:100dvh}
+
+  /* ---------- header ---------- */
+  header{position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none;text-align:center;
+    padding:calc(20px + env(safe-area-inset-top)) 16px 34px;
+    background:linear-gradient(180deg,rgba(5,6,12,.72),rgba(5,6,12,0))}
+  .mark{width:30px;height:30px;margin:0 auto 10px;border-radius:50%;position:relative;
+    box-shadow:0 0 22px 4px rgba(255,207,122,.35);border:2px solid #ffcf7a;background:#07080f}
+  .mark::after{content:'';position:absolute;inset:5px;border-radius:50%;background:#07080f;box-shadow:inset 0 0 6px rgba(255,207,122,.55)}
+  h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(28px,4.5vw,44px);margin:0;letter-spacing:.04em;color:#f4f6fb;
+    text-shadow:0 2px 18px rgba(0,0,0,.7)}
+  .tag{margin-top:6px;font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:#c9b98a;text-shadow:0 1px 8px rgba(0,0,0,.8)}
+
+  /* ---------- panels ---------- */
+  main{flex:1;display:flex;min-height:100dvh}
+  .panel{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:center;text-decoration:none;color:inherit;
+    overflow:hidden;outline:none}
+  .bg{position:absolute;inset:0;background-size:cover;background-position:center;transform:scale(1.001);transition:transform 5s ease-out}
+  .veil{position:absolute;inset:0;background:rgba(5,6,12,.42);transition:background .45s ease}          /* the cinematic veil */
+  .grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,6,12,.55) 0%,rgba(5,6,12,.06) 42%,rgba(5,6,12,.78) 100%)}
+  .panel+.panel{border-left:1px solid rgba(255,255,255,.10)}
+  .content{position:relative;z-index:2;text-align:center;padding:0 22px calc(48px + env(safe-area-inset-bottom));max-width:34ch}
+  .kicker{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#ffcf7a;text-shadow:0 1px 8px rgba(0,0,0,.9)}
+  .name{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(30px,3.2vw,44px);line-height:1.06;margin:10px 0 8px;color:#fff;
+    text-shadow:0 2px 22px rgba(0,0,0,.85)}
+  .desc{font-size:12.5px;line-height:1.55;color:#cfd8e6;text-shadow:0 1px 10px rgba(0,0,0,.9)}
+  .go{display:inline-block;margin-top:16px;padding:11px 30px;border:1px solid #ffcf7a;border-radius:100px;color:#ffcf7a;
+    font-size:11px;letter-spacing:.3em;text-transform:uppercase;transition:background .3s,color .3s,box-shadow .3s;text-shadow:none}
+  .panel:hover .bg,.panel:focus-visible .bg{transform:scale(1.06)}
+  .panel:hover .veil,.panel:focus-visible .veil{background:rgba(5,6,12,.16)}
+  .panel:hover .go,.panel:focus-visible .go{background:#ffcf7a;color:#0a0a14;box-shadow:0 6px 26px rgba(255,207,122,.4)}
+  .panel:focus-visible{box-shadow:inset 0 0 0 2px #ffcf7a}
+
+  footer{position:fixed;left:0;right:0;bottom:0;z-index:10;pointer-events:none;text-align:center;
+    padding:0 12px calc(8px + env(safe-area-inset-bottom));font-size:8.5px;letter-spacing:.06em;color:#71809a;opacity:.75}
+  footer a{color:inherit}
+
+  @media (prefers-reduced-motion:reduce){ .bg,.veil,.go{transition:none} .panel:hover .bg{transform:none} }
+
+  /* ---------- mobile: stack the triptych ---------- */
+  @media (max-width:760px){
+    main{flex-direction:column}
+    .panel{min-height:33.4dvh}
+    .panel+.panel{border-left:none;border-top:1px solid rgba(255,255,255,.10)}
+    header{padding-bottom:20px}
+    .content{padding-bottom:26px}
+    .name{font-size:27px;margin:6px 0 4px}
+    .desc{font-size:11.5px;max-width:40ch}
+    .go{margin-top:10px;padding:9px 24px}
+    .kicker{font-size:9px;letter-spacing:.24em}
+  }
 </style>
 </head>
 <body>
-<div id="fwrap">
-  <canvas id="fc" tabindex="0"></canvas>
+<header>
+  <div class="mark" aria-hidden="true"></div>
+  <h1>Eclipse Flight</h1>
+  <div class="tag">chase the shadow · three totalities</div>
+</header>
 
-  <!-- Heads-up display (purely presentational; values are written by the loop) -->
-  <div class="h" aria-hidden="true">
-    <div id="f-hdg" class="g" style="position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.3em">HDG ---</div>
-    <div id="f-phase" style="position:absolute;top:46px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:#ffe9b8;text-shadow:0 0 10px rgba(255,233,184,.6)">first contact</div>
-    <div class="g" style="position:absolute;left:26px;top:50%;transform:translateY(-50%)"><div id="f-spd" style="font-size:32px;font-weight:500;line-height:1">0</div><div style="font-size:10px;letter-spacing:.26em;color:#4fae82;text-transform:uppercase;margin-top:4px">km / h</div></div>
-    <div class="g" style="position:absolute;right:26px;top:50%;transform:translateY(-50%);text-align:right"><div id="f-alt" style="font-size:32px;font-weight:500;line-height:1">0</div><div style="font-size:10px;letter-spacing:.26em;color:#4fae82;text-transform:uppercase;margin-top:4px">m · altitude</div></div>
-    <div style="position:absolute;top:50%;left:50%;width:120px;height:120px;transform:translate(-50%,-50%);opacity:.4"><div style="position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(124,252,180,.6)"></div><div style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(124,252,180,.6)"></div></div>
-    <div style="position:absolute;right:26px;bottom:26px;width:14px;height:160px;border:1px solid rgba(124,252,180,.4);border-radius:8px;overflow:hidden"><i id="f-thr" style="position:absolute;left:0;right:0;bottom:0;height:40%;background:#7CFCB4;display:block"></i></div>
-    <div id="f-hint-hud" style="position:absolute;left:26px;bottom:22px;font-size:11px;letter-spacing:.1em;color:#4fae82;line-height:1.7">↑↓ pitch · ←→ bank · W/S throttle · space boost · E hasten eclipse · R reset</div>
-    <!-- Data attribution (required); text is filled from the heightmap sidecar so it stays correct per-source -->
-    <div id="f-attr" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.08em;color:#5a6b62;opacity:.55"></div>
-  </div>
+<main>
+  <a class="panel" href="/iceland/" aria-label="Play Iceland Eclipse Flight — fly the Snæfellsnes coast into the 2026 totality">
+    <div class="bg" style="background-image:url('assets/menu/iceland.jpg')"></div>
+    <div class="veil"></div><div class="grad"></div>
+    <div class="content">
+      <div class="kicker">Hellissandur · Iceland · 12 Aug 2026</div>
+      <div class="name">Iceland<br>Eclipse Flight</div>
+      <div class="desc">a coastal flight over Snæfellsnes as the fjord falls into totality</div>
+      <span class="go">Fly</span>
+    </div>
+  </a>
+  <a class="panel" href="/egypt/" aria-label="Play Egypt Eclipse Flight — drift a balloon over Luxor beneath the 2027 totality">
+    <div class="bg" style="background-image:url('assets/menu/egypt.jpg')"></div>
+    <div class="veil"></div><div class="grad"></div>
+    <div class="content">
+      <div class="kicker">Luxor · Egypt · 2 Aug 2027</div>
+      <div class="name">Egypt<br>Eclipse Flight</div>
+      <div class="desc">drift a balloon over the west bank as the century's longest totality falls</div>
+      <span class="go">Drift</span>
+    </div>
+  </a>
+  <a class="panel" href="/skiclipse/" aria-label="Play Eclipse Descent — carve the Cardrona high country beneath the 2028 totality">
+    <div class="bg" style="background-image:url('assets/menu/cardrona.jpg')"></div>
+    <div class="veil"></div><div class="grad"></div>
+    <div class="content">
+      <div class="kicker">Cardrona · New Zealand · 22 Jul 2028</div>
+      <div class="name">Eclipse<br>Descent</div>
+      <div class="desc">carve the treeless high country as the moon swallows the sun</div>
+      <span class="go">Carve</span>
+    </div>
+  </a>
+</main>
 
-  <!-- Minimap frame: the 3D map renders into the canvas beneath this; this is just the border + label -->
-  <div id="f-map" style="position:absolute;left:14px;bottom:46px;width:230px;height:150px;z-index:5;border:1px solid rgba(124,252,180,.4);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.45);pointer-events:none;display:none">
-    <div style="position:absolute;top:5px;left:10px;font-size:9px;letter-spacing:.02em;color:#7CFCB4;opacity:.9;text-shadow:0 1px 3px rgba(0,0,0,.7)">Map of Western Snæfellsnes</div>
-  </div>
-
-  <!-- Background music: starts on "click to fly", loops; toggle with the speaker button (top-right). -->
-  <audio id="bgm" loop preload="auto" src="assets/soundtrack.mp3"></audio>
-  <button id="f-mute" aria-label="toggle music" title="music on / off" style="position:absolute;top:16px;right:18px;z-index:6;pointer-events:auto;width:34px;height:34px;border-radius:50%;background:rgba(5,6,10,.5);border:1px solid rgba(124,252,180,.4);color:#7CFCB4;font-size:15px;line-height:30px;text-align:center;cursor:pointer;padding:0">🔊</button>
-
-  <!-- Win overlay: shown when the plane lands on the festival logo -->
-  <div id="f-win" style="position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center">
-    <div style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:64px;color:#fff;text-shadow:0 0 34px rgba(255,190,70,.85),0 2px 18px rgba(0,0,0,.65);line-height:1.05">You landed<br>on the Eclipse</div>
-    <div style="margin-top:20px;color:#ffe9b8;font-size:12px;letter-spacing:.34em;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.85)">✦ you win ✦&nbsp;&nbsp;&nbsp;tap or press R to fly again</div>
-  </div>
-
-  <!-- Start overlay; the button stays "loading terrain…" until the DEM is decoded -->
-  <div id="f-start" style="position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,6,10,.82);text-align:center;cursor:pointer">
-    <div id="f-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:56px;color:#f4f1ea">Iceland Eclipse Flight</div>
-    <div id="f-sub" style="margin-top:14px;color:#a7a399;font-size:14px;max-width:38ch">Fly the Snæfellsnes cover and experience the scene from above the land as we enter Totality</div>
-    <div id="f-fly" style="margin-top:30px;padding:14px 32px;border:1px solid #7CFCB4;border-radius:100px;color:#7CFCB4;font-size:12px;letter-spacing:.3em;text-transform:uppercase">loading terrain…</div>
-    <div id="f-hint-start" style="margin-top:24px;font-size:11px;color:#6f6c64;letter-spacing:.12em">↑↓ pitch · ←→ bank · W/S throttle · space boost · E hasten eclipse</div>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-(function(){
-  'use strict';
-  var THREE=window.THREE; if(!THREE) return;
-
-  // ---------------------------------------------------------------- renderer + scene
-  var canvas=document.getElementById('fc'), wrap=document.getElementById('fwrap');
-  var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  var scene=new THREE.Scene();
-  var day=new THREE.Color(0x9fb6d6), night=new THREE.Color(0x05070e);
-  scene.background=day.clone();
-  // Real-world scale: 1 unit = 1 metre, terrain ≈33 km — so fog and the far clip plane sit far out.
-  scene.fog=new THREE.Fog(0x9fb6d6,3000,55000);
-  var camera=new THREE.PerspectiveCamera(70,1,3,62000); camera.layers.enable(2); // layer 2 = sky/atmosphere (main view only, kept out of the minimap)
-
-  var sun=new THREE.DirectionalLight(0xfff2d6,1.15); sun.position.set(-1500,1200,-2200); scene.add(sun);
-  var hemi=new THREE.HemisphereLight(0xbcd2ff,0x2a2418,0.7); scene.add(hemi);
-
-  // ---------------------------------------------------------------- sky: sun / moon / corona / stars
-  // These are camera-locked sprites with depthTest off, so they behave like a skybox and the
-  // terrain never occludes the eclipse. Distances/scales are unchanged from the original — the
-  // eclipse choreography is preserved verbatim.
-  function radialTex(stops){var c=document.createElement('canvas');c.width=c.height=128;var x=c.getContext('2d');var g=x.createRadialGradient(64,64,0,64,64,64);stops.forEach(function(s){g.addColorStop(s[0],s[1]);});x.fillStyle=g;x.fillRect(0,0,128,128);var t=new THREE.Texture(c);t.needsUpdate=true;return t;}
-  var sunTex=radialTex([[0,'rgba(255,248,224,1)'],[0.5,'rgba(255,233,184,1)'],[0.78,'rgba(255,210,140,0.5)'],[1,'rgba(255,210,140,0)']]);
-  var moonTex=radialTex([[0,'rgba(4,5,8,1)'],[0.82,'rgba(4,5,8,1)'],[0.93,'rgba(4,5,8,0.9)'],[1,'rgba(4,5,8,0)']]);
-  var coronaTex=radialTex([[0,'rgba(255,255,255,0)'],[0.42,'rgba(255,250,235,0)'],[0.52,'rgba(255,247,225,0.9)'],[0.62,'rgba(255,236,196,0.25)'],[1,'rgba(255,236,196,0)']]);
-  function sprite(tex,scale,blend){var m=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false});if(blend)m.blending=THREE.AdditiveBlending;var s=new THREE.Sprite(m);s.scale.set(scale,scale,1);return s;}
-  var corona=sprite(coronaTex,2600,true); corona.material.opacity=0; scene.add(corona);
-  var sunS=sprite(sunTex,760,true); scene.add(sunS);
-  var moonS=sprite(moonTex,820,false); scene.add(moonS);
-  // Star dome (only visible at totality); radius pushed beyond the terrain so it reads as far sky.
-  var sg=new THREE.BufferGeometry(),spA=[];
-  for(var i=0;i<1400;i++){var th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1),r=30000;spA.push(r*Math.sin(ph)*Math.cos(th),Math.abs(r*Math.cos(ph))*0.9+600,r*Math.sin(ph)*Math.sin(th));}
-  sg.setAttribute('position',new THREE.Float32BufferAttribute(spA,3));
-  var stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:70,transparent:true,opacity:0,depthWrite:false}));scene.add(stars);
-
-  // ---- aurora (northern lights) — an animated shader curtain that wakes at totality ----
-  var auroraMat=new THREE.ShaderMaterial({
-    uniforms:{uTime:{value:0},uIntensity:{value:0}},
-    transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, depthTest:false, side:THREE.BackSide,
-    vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-    fragmentShader:[
-      'varying vec2 vUv; uniform float uTime; uniform float uIntensity;',
-      'float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }',
-      'float noise(vec2 p){ vec2 i=floor(p),f=fract(p); vec2 u=f*f*(3.0-2.0*f);',
-      '  return mix(mix(hash(i),hash(i+vec2(1.,0.)),u.x), mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),u.x),u.y); }',
-      'float fbm(vec2 p){ float s=0.,a=0.5; for(int i=0;i<4;i++){ s+=a*noise(p); p*=2.0; a*=0.5; } return s; }',
-      'void main(){',
-      '  float y=vUv.y, t=uTime*0.05;',
-      '  float n=fbm(vec2(vUv.x*9.0+t, vUv.y*2.0-t*0.3));',          // broad waving curtains
-      '  float rays=fbm(vec2(vUv.x*26.0-t*1.3, vUv.y*1.2+t*0.2));',  // finer vertical rays
-      '  float curtain=smoothstep(0.33,0.9, n*0.7+rays*0.5);',
-      '  float vfade=smoothstep(0.0,0.2,y)*(1.0-smoothstep(0.7,1.0,y));', // float as a band in the sky
-      '  float a=curtain*vfade;',
-      '  vec3 col=mix(vec3(0.15,1.0,0.45), vec3(0.2,0.85,0.9), smoothstep(0.2,0.6,y));', // green -> teal
-      '  col=mix(col, vec3(0.55,0.2,0.9), smoothstep(0.6,0.95,y)*0.7);',                  // violet tips
-      '  gl_FragColor=vec4(col*a*uIntensity*3.4, a*uIntensity*0.9);',
-      '}'
-    ].join('\n')
-  });
-  var aurora=new THREE.Mesh(new THREE.CylinderGeometry(24000,24000,25000,72,1,true),auroraMat);
-  aurora.visible=false; scene.add(aurora);
-  // Sky + atmosphere live on layer 2 so the minimap camera (layers 0+1) never shows them.
-  [corona,sunS,moonS,stars,aurora].forEach(function(o){o.layers.set(2);});
-
-  // ---------------------------------------------------------------- terrain (real ArcticDEM heightmap)
-  var EXAG=1.8;        // vertical exaggeration — 1.4 km of relief over 33 km reads flat from the air
-  var DEM=null;        // {data:Float32Array, size, spanX, spanZ, minE, maxE, hellissandur, glacier, …}
-  var terrainMesh=null;
-  function hash(x,z){var n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);}
-  function vn(x,z){var xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi,u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);var a=hash(xi,zi),b=hash(xi+1,zi),c=hash(xi,zi+1),d=hash(xi+1,zi+1);return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;}
-
-  // Bilinear height sampler in WORLD METRES. +x = east, +z = south, origin = bbox centre.
-  // The mesh AND the flight collision both call this, so they can never drift apart.
-  function H(wx,wz){
-    if(!DEM) return 0;
-    var u=(wx+DEM.spanX/2)/DEM.spanX, v=(wz+DEM.spanZ/2)/DEM.spanZ;
-    if(u<0||u>1||v<0||v>1) return 0;                       // outside the peninsula bbox → open sea
-    var s=DEM.size, fx=u*(s-1), fy=v*(s-1);
-    var x0=Math.floor(fx),y0=Math.floor(fy),x1=Math.min(x0+1,s-1),y1=Math.min(y0+1,s-1);
-    var tx=fx-x0,ty=fy-y0,d=DEM.data;
-    var top=d[y0*s+x0]+(d[y0*s+x1]-d[y0*s+x0])*tx;
-    var bot=d[y1*s+x0]+(d[y1*s+x1]-d[y1*s+x0])*tx;
-    return (top+(bot-top)*ty)*EXAG;
-  }
-
-  // Build the terrain mesh once the DEM is in memory. Collision stays full-resolution via H()
-  // regardless of mesh density, so SEG only trades visual crispness against vertex count.
-  function buildTerrain(){
-    var coarse=(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
-    var SEG=coarse?512:1024;
-    var geo=new THREE.PlaneGeometry(DEM.spanX,DEM.spanZ,SEG,SEG); geo.rotateX(-Math.PI/2);
-    var pos=geo.attributes.position, cols=[];
-    var cS=new THREE.Color(0x2c2a27),cG=new THREE.Color(0x4a6438),cR=new THREE.Color(0x6a5f50),cW=new THREE.Color(0xeef2f6);
-    for(var i=0;i<pos.count;i++){
-      var x=pos.getX(i),z=pos.getZ(i),h=H(x,z); pos.setY(i,h);
-      var e=h/EXAG, c=new THREE.Color();                                // e = real metres for the ramp
-      if(e<6) c.copy(cS);                                               // shoreline / sand
-      else if(e<180) c.copy(cG).lerp(cR,(e-6)/174);                     // moss & grass → rock
-      else if(e<900) c.copy(cR).lerp(cW,Math.max(0,(e-600)/300));       // rock, snow-capping above 600 m
-      else c.copy(cW);                                                  // Snæfellsjökull ice cap
-      c.multiplyScalar(0.84+0.16*vn(x/300,z/300));                      // faint deterministic dither
-      cols.push(c.r,c.g,c.b);
-    }
-    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
-    geo.computeVertexNormals();                                         // essential — real DEM is unlit-flat without it
-    terrainMesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}));
-    scene.add(terrainMesh);
-    // Drape real satellite imagery over the terrain (Esri World Imagery, baked to the same bbox).
-    // Falls back to the elevation colour-ramp above if the texture fails to load.
-    new THREE.TextureLoader().load('assets/snaefellsnes-imagery.jpg',function(tex){
-      tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-      var m=terrainMesh.material; m.map=tex; m.vertexColors=false; m.color.setHex(0xffffff); m.needsUpdate=true;
-    });
-  }
-
-  // Ocean: a big plane just above the baked sea (which is flat 0). Sized so its edge is never in view.
-  var water=new THREE.Mesh(new THREE.PlaneGeometry(120000,120000),new THREE.MeshStandardMaterial({color:0x10314a,transparent:true,opacity:0.9,roughness:0.62,metalness:0.05}));
-  water.rotation.x=-Math.PI/2; water.position.y=1.5; scene.add(water);
-
-  // ---------------------------------------------------------------- the aircraft (private jet)
-  // Built from primitives so the sim stays single-file/no-asset. Frame: −z = forward (nose),
-  // +z = aft (tail), +x = right wing, +y = up. White-with-navy livery, tinted glass, metal engines.
-  function buildJet(){
-    var g=new THREE.Group(), DS=THREE.DoubleSide;
-    var body=new THREE.MeshStandardMaterial({color:0xf2f3f5,roughness:0.32,metalness:0.15,side:DS});
-    var accent=new THREE.MeshStandardMaterial({color:0x1b2a4a,roughness:0.34,metalness:0.3,side:DS});
-    var glass=new THREE.MeshStandardMaterial({color:0x0b0d14,roughness:0.12,metalness:0.55});
-    var metal=new THREE.MeshStandardMaterial({color:0x3a3d44,roughness:0.35,metalness:0.85});
-    var darkM=new THREE.MeshStandardMaterial({color:0x0d0f14,roughness:0.5,metalness:0.6});
-
-    // Fuselage — smooth lathe profile [radius, station]; station 0 = tail, 30 = nose.
-    var prof=[[0,0],[0.45,1.2],[0.85,3],[1.25,6],[1.55,10],[1.68,14],[1.68,19.5],[1.55,22.5],[1.28,25.5],[0.92,28],[0.5,29.6],[0,30]];
-    var fus=new THREE.Mesh(new THREE.LatheGeometry(prof.map(function(p){return new THREE.Vector2(p[0],p[1]);}),28),body);
-    fus.rotation.x=-Math.PI/2; fus.position.z=15; g.add(fus);   // → nose at z −15, tail at z +15
-
-    // Cockpit windscreen (tinted glass on the upper nose).
-    var wind=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),glass);
-    wind.scale.set(1.3,0.6,2.1); wind.position.set(0,0.8,-10); g.add(wind);
-
-    // Cabin windows + a painted cheat-line, both sides.
-    for(var si=-1;si<=1;si+=2){
-      var cl=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.3,23),accent);
-      cl.position.set(si*1.6,0.04,1); g.add(cl);
-      for(var w=0;w<8;w++){
-        var win=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.4,0.5),glass);
-        win.position.set(si*1.64,0.5,-6.5+w*1.6); g.add(win);
-      }
-    }
-
-    // Extruded swept surface from a planform (2D points), returned unrotated.
-    function surface(pts,depth,mat){
-      var sh=new THREE.Shape(); sh.moveTo(pts[0][0],pts[0][1]);
-      for(var i=1;i<pts.length;i++) sh.lineTo(pts[i][0],pts[i][1]);
-      return new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:depth,bevelEnabled:false}),mat);
-    }
-
-    // Main wings — swept + tapered, low-mid mount, with dihedral.
-    for(var si=-1;si<=1;si+=2){
-      var wing=surface([[0,3.4],[si*11,-1.6],[si*11,-3.6],[0,-3.8]],0.34,body);
-      wing.rotation.x=-Math.PI/2;
-      var piv=new THREE.Group(); piv.add(wing);
-      piv.position.set(si*1.3,-0.55,1.0); piv.rotation.z=si*0.06; g.add(piv);
-    }
-
-    // Rear-fuselage engines — nacelle + intake ring + exhaust + pylon, both sides.
-    for(var si=-1;si<=1;si+=2){
-      var nac=new THREE.Mesh(new THREE.CylinderGeometry(1.05,0.92,5,18),metal);
-      nac.rotation.x=Math.PI/2; nac.position.set(si*2.5,0.4,6); g.add(nac);
-      var intake=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.16,10,18),darkM);
-      intake.position.set(si*2.5,0.4,3.55); g.add(intake);
-      var exh=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.78,1.2,16),darkM);
-      exh.rotation.x=Math.PI/2; exh.position.set(si*2.5,0.4,8.7); g.add(exh);
-      var pylon=new THREE.Mesh(new THREE.BoxGeometry(1.3,0.5,2.4),body);
-      pylon.position.set(si*1.7,0.45,6); g.add(pylon);
-    }
-
-    // T-tail — swept navy fin + white horizontal stabilizers at its top.
-    var fin=surface([[8.5,1.4],[13,1.4],[13.2,6.6],[11,6.6]],0.3,accent); // pts = [aft(z), up(y)]
-    fin.rotation.y=-Math.PI/2; fin.position.x=0.15; g.add(fin);
-    for(var si=-1;si<=1;si+=2){
-      var stab=surface([[0,1.3],[si*4,-0.4],[si*4,-1.5],[0,-1.3]],0.26,body);
-      stab.rotation.x=-Math.PI/2; stab.position.set(0,6.6,11.4); g.add(stab);
-    }
-    return g;
-  }
-  var plane=buildJet(); scene.add(plane);
-
-  // ---------------------------------------------------------------- festival site + minimap
-  // The festival now reads as part of the map: a soft glowing ring on the ground (no floating
-  // beacon), plus a bright pin on the corner minimap so it's always easy to locate. emblemTex()
-  // stays the swap point for a real festival logo (used on the minimap pin).
-  var FEST={x:-1254,z:-6957};                          // festival grounds — flat coastal fields ESE of Hellissandur, off the town (≈64.9125°N, 23.8765°W)
-  var logoTex=new THREE.TextureLoader().load('assets/iceland-eclipse-logo.png'); // festival logo for the spinning coin
-  var festCoin=null;                                                             // upright logo coin, spun in the loop
-  var won=false, winPos=new THREE.Vector3(), LAND_R=240, LAND_ALT=44;            // land-on-the-logo win: horizontal radius + altitude-above-ground thresholds
-  var FW_COLORS=[[2.2,1.5,0.5],[2.4,0.5,0.4],[0.5,2.2,0.8],[0.5,1.4,2.4],[2.2,0.6,1.8],[2.4,2.4,2.2],[2.4,1.2,0.3],[2.2,0.9,1.5]];
-  var fw={pts:null,geo:null,pos:null,col:null,parts:[],max:6500,cursor:0,t:0,last:0,gy:0};
-  var miniCam=null, playerArrow=null, fRingMat=null;   // minimap camera + live player marker + pulsing ring
-  var mapMW=232, mapMH=150, mapMX=14, mapMY=46;        // rectangular minimap + corner offsets (set in rz)
-  function emblemTex(){
-    var c=document.createElement('canvas');c.width=c.height=128;var x=c.getContext('2d');
-    x.beginPath();x.arc(64,64,58,0,Math.PI*2);x.fillStyle='#0c1426';x.fill();            // dark badge
-    x.lineWidth=5;x.strokeStyle='#ffc24d';x.stroke();                                     // gold rim
-    var g=x.createRadialGradient(64,60,12,64,60,40);                                      // eclipse corona
-    g.addColorStop(0,'rgba(255,240,205,0)');g.addColorStop(0.5,'rgba(255,240,205,0)');g.addColorStop(0.64,'rgba(255,238,196,1)');g.addColorStop(0.82,'rgba(255,205,110,0.35)');g.addColorStop(1,'rgba(255,205,110,0)');
-    x.fillStyle=g;x.fillRect(0,0,128,128);
-    x.beginPath();x.arc(64,60,18,0,Math.PI*2);x.fillStyle='#0a0c12';x.fill();             // eclipsed sun
-    var t=new THREE.Texture(c);t.needsUpdate=true;return t;
-  }
-  // On-the-ground festival marker: concentric glowing rings laid flat on the real terrain.
-  function buildFestivalMarker(){
-    var gy=H(FEST.x,FEST.z), grp=new THREE.Group();grp.position.set(FEST.x,gy+4,FEST.z);
-    function ring(ri,ro,op){var mm=new THREE.MeshBasicMaterial({color:0xffc24d,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});var m=new THREE.Mesh(new THREE.RingGeometry(ri,ro,64),mm);m.rotation.x=-Math.PI/2;grp.add(m);return mm;}
-    fRingMat=ring(150,184,0.55);   // outer ring (gently pulses)
-    ring(72,88,0.5);               // inner ring
-    ring(0,150,0.07);              // soft fill
-    // the logo as an upright "coin" floating in the centre, spun slowly about its vertical axis
-    festCoin=new THREE.Group();festCoin.position.set(0,86,0);
-    festCoin.add(new THREE.Mesh(new THREE.PlaneGeometry(140,140),new THREE.MeshBasicMaterial({map:logoTex,transparent:true,depthWrite:false,side:THREE.DoubleSide})));
-    grp.add(festCoin);
-    scene.add(grp);
-  }
-  // Corner minimap: a tilted top-down camera over the whole peninsula, plus bright layer-1 markers
-  // (festival pin + player arrow) that only the minimap camera renders.
-  function buildMinimap(){
-    // A low, tilted camera over the peninsula gives the in-game "3D map" look (relief + horizon),
-    // not a flat top-down. North is up; the whole area stays in frame.
-    miniCam=new THREE.PerspectiveCamera(40,mapMW/mapMH,800,150000);
-    miniCam.position.set(0,25000,26000);miniCam.lookAt(0,700,-2400);miniCam.layers.enable(1);
-    var gy=H(FEST.x,FEST.z);
-    // festival pin — a bright gold marker that always faces the minimap camera and stays on top
-    var fpin=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTex,transparent:true,depthTest:false,depthWrite:false}));
-    fpin.scale.set(2150,2150,1);fpin.position.set(FEST.x,gy+650,FEST.z);fpin.renderOrder=11;fpin.layers.set(1);scene.add(fpin);
-    // player arrow — flat, rotates to your heading, always drawn on top
-    var sh=new THREE.Shape();sh.moveTo(0,1700);sh.lineTo(-1080,-1280);sh.lineTo(0,-560);sh.lineTo(1080,-1280);sh.lineTo(0,1700);
-    var ar=new THREE.Mesh(new THREE.ShapeGeometry(sh),new THREE.MeshBasicMaterial({color:0x6fe9ff,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
-    ar.rotation.x=-Math.PI/2;ar.renderOrder=12;playerArrow=new THREE.Group();playerArrow.add(ar);
-    playerArrow.traverse(function(o){if(o.layers)o.layers.set(1);});scene.add(playerArrow);
-  }
-
-  // ---------------------------------------------------------------- flight state
-  var SUNDIR=new THREE.Vector3(-0.45,0.42,-0.79).normalize();
-  var SPAWN=new THREE.Vector3(0,2400,0), START_ALT=2400, faceGlacier=0;  // finalised once the DEM loads
-  var st={pos:SPAWN.clone(),heading:0,pitch:-0.02,roll:0,throttle:0.4,speed:80,boost:0,ecl:0};
-  var MINS=55,MAXS=130,keys={};   // metres/second — at 1 unit = 1 m the HUD shows true ground speed
-
-  function resetFlight(){st.pos.copy(SPAWN);st.heading=faceGlacier;st.pitch=-0.02;st.roll=0;st.throttle=0.4;st.speed=80;st.ecl=0;won=false;var we=document.getElementById('f-win');if(we)we.style.display='none';fwClear();}
-
-  // Seat the spawn over Hellissandur, nose pointed at Snæfellsjökull (both from the baked coords).
-  function setSpawn(){
-    SPAWN.set(DEM.hellissandur.x,START_ALT,DEM.hellissandur.z);
-    var gx=DEM.glacier.x-DEM.hellissandur.x, gz=DEM.glacier.z-DEM.hellissandur.z;
-    faceGlacier=Math.atan2(-gx,-gz);                  // heading whose forward (-sinθ,-cosθ) aims at the glacier
-    resetFlight();
-    var q=new THREE.Quaternion().setFromEuler(new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'));
-    plane.position.copy(st.pos); plane.quaternion.copy(q);
-    camera.position.copy(st.pos).add(new THREE.Vector3(0,9,46).applyQuaternion(q));
-  }
-
-  function kd(e){var k=e.key.toLowerCase();keys[k]=true;if(['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(k)>=0)e.preventDefault();}
-  function ku(e){keys[e.key.toLowerCase()]=false;}
-  window.addEventListener('keydown',kd);window.addEventListener('keyup',ku);
-
-  // ---- touch steering (mobile) — drag anywhere to pitch/bank; desktop keyboard is untouched ----
-  var touch={active:false,px:0,py:0,ox:0,oy:0,ref:200};
-  function tStart(e){var t=e.touches[0];if(!t)return;if(won){resetFlight();e.preventDefault();return;}touch.active=true;touch.ox=t.clientX;touch.oy=t.clientY;touch.px=0;touch.py=0;touch.ref=(Math.min(window.innerWidth,window.innerHeight)*0.28)||200;e.preventDefault();}
-  function tMove(e){if(!touch.active)return;var t=e.touches[0];if(!t)return;touch.px=-Math.max(-1,Math.min(1,(t.clientX-touch.ox)/touch.ref));touch.py=-Math.max(-1,Math.min(1,(t.clientY-touch.oy)/touch.ref));e.preventDefault();}
-  function tEnd(){touch.active=false;touch.px=0;touch.py=0;}
-  canvas.addEventListener('touchstart',tStart,{passive:false});
-  canvas.addEventListener('touchmove',tMove,{passive:false});
-  canvas.addEventListener('touchend',tEnd);canvas.addEventListener('touchcancel',tEnd);
-
-  // ---------------------------------------------------------------- heightmap loader (async)
-  var demReady=false, started=false;
-  var startEl=document.getElementById('f-start'), flyEl=document.getElementById('f-fly');
-  var bgm=document.getElementById('bgm'), muteBtn=document.getElementById('f-mute');
-  function loadHeightmap(cb){
-    fetch('assets/snaefellsnes-height.json').then(function(r){return r.json();}).then(function(meta){
-      var img=new Image();
-      img.onload=function(){
-        var cv=document.createElement('canvas'); cv.width=cv.height=meta.size;
-        var cx=cv.getContext('2d'); cx.drawImage(img,0,0);
-        var px=cx.getImageData(0,0,meta.size,meta.size).data;   // same-origin asset → canvas is not tainted
-        var n=meta.size*meta.size, data=new Float32Array(n), range=meta.maxElevation-meta.minElevation;
-        for(var i=0;i<n;i++){var g16=(px[i*4]<<8)|px[i*4+1]; data[i]=meta.minElevation+(g16/65535)*range;} // decode R/G → metres
-        DEM={data:data,size:meta.size,spanX:meta.spanMetersX,spanZ:meta.spanMetersZ,minE:meta.minElevation,maxE:meta.maxElevation,hellissandur:meta.hellissandur,glacier:meta.glacier,attribution:meta.attribution};
-        cb(true);
-      };
-      img.onerror=function(){cb(false);};   // PNG missing → fall through to flat-sea (still flyable)
-      img.src='assets/snaefellsnes-height.png';
-    }).catch(function(){cb(false);});       // sidecar missing → same graceful fallback
-  }
-
-  var startElClick=function(){if(!demReady)return;started=true;startEl.style.display='none';canvas.focus();if(bgm){bgm.volume=0.5;bgm.play().catch(function(){});}};
-  startEl.addEventListener('click',startElClick);
-  canvas.addEventListener('click',function(){canvas.focus();if(won)resetFlight();});
-  if(muteBtn) muteBtn.addEventListener('click',function(e){e.stopPropagation();if(!bgm)return;bgm.muted=!bgm.muted;muteBtn.textContent=bgm.muted?'🔇':'🔊';muteBtn.style.color=bgm.muted?'#5a6b62':'#7CFCB4';});
-  // mobile: replace the keyboard hints with a touch instruction
-  if(window.matchMedia&&matchMedia('(pointer:coarse)').matches){
-    var hs=document.getElementById('f-hint-start');if(hs)hs.textContent='drag anywhere to fly · the eclipse unfolds as you go';
-    var hh=document.getElementById('f-hint-hud');if(hh)hh.textContent='drag to steer';
-  }
-
-  // ---------------------------------------------------------------- main loop
-  var hE=document.getElementById('f-hdg'),sE=document.getElementById('f-spd'),aE=document.getElementById('f-alt'),tE=document.getElementById('f-thr'),phE=document.getElementById('f-phase');
-  function smooth(a,b,x){x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x);}
-  // ---------------------------------------------------------------- fireworks (win celebration)
-  function sparkTex(){var c=document.createElement('canvas');c.width=c.height=64;var x=c.getContext('2d');var g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.28,'rgba(255,255,255,0.85)');g.addColorStop(0.6,'rgba(255,255,255,0.22)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);var t=new THREE.Texture(c);t.needsUpdate=true;return t;}
-  function buildFireworks(){
-    fw.pos=new Float32Array(fw.max*3); fw.col=new Float32Array(fw.max*3);
-    fw.geo=new THREE.BufferGeometry();
-    fw.geo.setAttribute('position',new THREE.BufferAttribute(fw.pos,3));
-    fw.geo.setAttribute('color',new THREE.BufferAttribute(fw.col,3));
-    fw.geo.setDrawRange(0,0);
-    fw.pts=new THREE.Points(fw.geo,new THREE.PointsMaterial({size:56,map:sparkTex(),vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));
-    fw.pts.frustumCulled=false; fw.pts.layers.set(2); scene.add(fw.pts);   // layer 2 = main view only (never in the minimap)
-    for(var i=0;i<fw.max;i++)fw.parts.push({life:0,ml:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,r:0,g:0,b:0});
-    fw.gy=H(FEST.x,FEST.z);
-  }
-  function fwBurst(cx,cy,cz,col,n,sp){
-    for(var i=0;i<n;i++){var p=fw.parts[fw.cursor++ % fw.max];
-      var th=Math.random()*6.283, ph=Math.acos(2*Math.random()-1), s=sp*(0.35+Math.random()*0.75);
-      p.x=cx;p.y=cy;p.z=cz;
-      p.vx=Math.sin(ph)*Math.cos(th)*s; p.vy=Math.cos(ph)*s; p.vz=Math.sin(ph)*Math.sin(th)*s;
-      p.r=col[0];p.g=col[1];p.b=col[2]; p.ml=1.1+Math.random()*1.2; p.life=p.ml;
-    }
-  }
-  function fwShoot(){ var b=winPos, c=FW_COLORS[(Math.random()*FW_COLORS.length)|0]; fwBurst(b.x+(Math.random()-0.5)*1600, fw.gy+320+Math.random()*1200, b.z+(Math.random()-0.5)*1600, c, 200, 320); }
-  function fwVolley(){ for(var k=0;k<10;k++)fwShoot(); fw.t=0; fw.last=0; }
-  function fwStep(dt,now){
-    fw.t+=dt;
-    if(fw.t-fw.last>0.19){ fw.last=fw.t; fwShoot(); fwShoot(); if(Math.random()<0.5)fwShoot(); }
-    var pos=fw.pos,col=fw.col,k=0,GR=150;
-    for(var i=0;i<fw.max;i++){var p=fw.parts[i]; if(p.life<=0)continue; p.life-=dt; if(p.life<=0)continue;
-      p.vy-=GR*dt; p.vx*=0.986;p.vy*=0.99;p.vz*=0.986; p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
-      var a=(p.life/p.ml)*(0.62+0.38*Math.sin(now*0.03+i));      // fade + per-spark twinkle
-      pos[k*3]=p.x;pos[k*3+1]=p.y;pos[k*3+2]=p.z; col[k*3]=p.r*a;col[k*3+1]=p.g*a;col[k*3+2]=p.b*a; k++;
-    }
-    fw.geo.setDrawRange(0,k); fw.geo.attributes.position.needsUpdate=true; fw.geo.attributes.color.needsUpdate=true;
-  }
-  function fwClear(){ for(var i=0;i<fw.parts.length;i++)fw.parts[i].life=0; if(fw.geo)fw.geo.setDrawRange(0,0); }
-
-  var last=performance.now();
-  function loop(now){var dt=Math.min((now-last)/1000,0.05);last=now;
-    if(started){
-      if(!won){
-      var pIn=(keys['arrowup']?1:0)-(keys['arrowdown']?1:0),rIn=(keys['arrowleft']?1:0)-(keys['arrowright']?1:0),tIn=(keys['w']?1:0)-(keys['s']?1:0);
-      if(touch.active){pIn=touch.py;rIn=touch.px;} // mobile: finger drag steers pitch + bank
-      st.throttle=Math.max(0,Math.min(1,st.throttle+tIn*0.5*dt));st.boost+=(((keys[' ']?1:0))-st.boost)*Math.min(1,dt*4);
-      st.pitch+=pIn*0.9*dt;st.pitch-=st.pitch*0.6*dt;st.pitch=Math.max(-0.7,Math.min(0.7,st.pitch));
-      st.roll+=rIn*1.6*dt;st.roll-=st.roll*1.2*dt;st.roll=Math.max(-1.1,Math.min(1.1,st.roll));st.heading+=st.roll*0.6*dt;
-      var tgt=MINS+(MAXS-MINS)*st.throttle+st.boost*70;st.speed+=(tgt-st.speed)*Math.min(1,dt*1.5);
-      st.pos.addScaledVector(new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'))),st.speed*dt);
-      var g=H(st.pos.x,st.pos.z),minY=Math.max(g+22,18);if(st.pos.y<minY){st.pos.y=minY;if(st.pitch<0.05)st.pitch+=1.2*dt;}
-      // WIN — a gentle landing inside the festival ring: no crash, just touch down on the logo
-      var wdx=st.pos.x-FEST.x,wdz=st.pos.z-FEST.z;if((wdx*wdx+wdz*wdz)<LAND_R*LAND_R&&(st.pos.y-g)<LAND_ALT){won=true;st.speed=0;winPos.copy(st.pos);var we=document.getElementById('f-win');if(we)we.style.display='flex';fwVolley();}
-      var B=19000;if(Math.hypot(st.pos.x,st.pos.z)>B){var want=Math.atan2(st.pos.x,st.pos.z),diff=want-st.heading;while(diff>Math.PI)diff-=2*Math.PI;while(diff<-Math.PI)diff+=2*Math.PI;st.heading+=diff*Math.min(1,dt*0.6);}
-      }
-      if(keys['r'])resetFlight();
-      var euler=new THREE.Euler(st.pitch,st.heading,st.roll,'YXZ'),q=new THREE.Quaternion().setFromEuler(euler),fwd=new THREE.Vector3(0,0,-1).applyQuaternion(q);
-      plane.position.copy(st.pos);plane.quaternion.copy(q);
-      var camPos=st.pos.clone().add(new THREE.Vector3(0,9,46).applyQuaternion(q));
-      camera.position.lerp(camPos,Math.min(1,dt*4));camera.lookAt(st.pos.clone().add(fwd.clone().multiplyScalar(60)));camera.up.set(0,1,0);
-      // --- eclipse (choreography unchanged from the original) ---
-      st.ecl+=dt*(keys['e']?9:1)/70;if(st.ecl>1)st.ecl-=1;var phase=st.ecl,sep=Math.abs(phase-0.5)*2,coverage=smooth(1.0,0.0,sep),totality=smooth(0.86,0.99,coverage);
-      var sunPos=camera.position.clone().add(SUNDIR.clone().multiplyScalar(16000));sunS.position.copy(sunPos);corona.position.copy(sunPos);
-      var right=new THREE.Vector3().crossVectors(SUNDIR,new THREE.Vector3(0,1,0)).normalize(),up=new THREE.Vector3().crossVectors(right,SUNDIR).normalize();
-      var slide=(phase-0.5)*2,off=right.clone().multiplyScalar(slide*1500).add(up.clone().multiplyScalar(slide*260));moonS.position.copy(sunPos).add(off);
-      corona.material.opacity=totality;corona.scale.setScalar(1800+totality*1400);sunS.material.opacity=1-totality*0.65;stars.position.copy(camera.position);stars.material.opacity=totality;
-      aurora.visible=totality>0.01;if(aurora.visible){auroraMat.uniforms.uIntensity.value=totality;auroraMat.uniforms.uTime.value=now*0.001;aurora.position.copy(camera.position);aurora.position.y+=13000;}
-      var lightF=0.16+0.84*Math.pow(1-coverage,1.4);sun.intensity=1.15*lightF;hemi.intensity=0.15+0.55*lightF;sun.color.setHSL(0.09,0.5,0.5+0.25*lightF);
-      var nightAmt=Math.pow(coverage,1.3)*0.92;scene.background.copy(day).lerp(night,nightAmt);scene.fog.color.copy(scene.background);scene.fog.far=50000+totality*16000;
-      water.material.color.copy(new THREE.Color(0x10314a)).multiplyScalar(0.35+0.65*lightF);
-      // --- HUD ---
-      hE.textContent='HDG '+String(Math.round((((-st.heading*180/Math.PI)%360)+360)%360)).padStart(3,'0');
-      sE.textContent=Math.round(st.speed*3.6);aE.textContent=Math.round(st.pos.y);tE.style.height=Math.round(st.throttle*100)+'%';
-      phE.textContent=totality>0.85?'totality':(coverage>0.5?'deep partial':(phase<0.5?'first contact':'fourth contact'));phE.style.opacity=0.5+0.5*coverage;
-    }
-    if(fRingMat)fRingMat.opacity=0.34+0.22*Math.sin(now*0.0022);   // festival ring pulse
-    if(festCoin)festCoin.rotation.y=now*0.0005;                    // logo coin: slow horizontal spin
-    if(won)fwStep(dt,now);                                         // grand fireworks while the win screen is up
-    renderer.render(scene,camera);
-    // --- corner minimap: second pass from the top-down camera into the lower-left viewport ---
-    if(started&&miniCam){
-      var mp=document.getElementById('f-map');if(mp&&mp.style.display==='none')mp.style.display='block';
-      if(playerArrow){playerArrow.position.set(st.pos.x,H(st.pos.x,st.pos.z)+320,st.pos.z);playerArrow.rotation.y=st.heading;}
-      var fog0=scene.fog;scene.fog=null;
-      renderer.setScissorTest(true);renderer.setViewport(mapMX,mapMY,mapMW,mapMH);renderer.setScissor(mapMX,mapMY,mapMW,mapMH);
-      renderer.render(scene,miniCam);
-      renderer.setScissorTest(false);renderer.setViewport(0,0,wrap.clientWidth,wrap.clientHeight);
-      scene.fog=fog0;
-    }
-    requestAnimationFrame(loop);
-  }
-  function rz(){var w=wrap.clientWidth,h=wrap.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
-    mapMH=Math.max(96,Math.min(152,Math.round(Math.min(w,h)*0.22)));mapMW=Math.round(mapMH*1.55);mapMX=14;mapMY=46;
-    if(miniCam){miniCam.aspect=mapMW/mapMH;miniCam.updateProjectionMatrix();}
-    var mp=document.getElementById('f-map');if(mp){mp.style.width=mapMW+'px';mp.style.height=mapMH+'px';mp.style.left=mapMX+'px';mp.style.bottom=mapMY+'px';}
-  }
-  window.addEventListener('resize',rz);rz();
-
-  // ---------------------------------------------------------------- boot
-  loadHeightmap(function(ok){
-    if(ok){buildTerrain();setSpawn();buildFestivalMarker();buildMinimap();buildFireworks();var a=document.getElementById('f-attr');if(a)a.textContent='imagery © esri, maxar, earthstar · elevation © arcticdem';}
-    demReady=true;if(flyEl)flyEl.textContent='click to fly';
-  });
-  requestAnimationFrame(loop);
-})();
-</script>
+<footer>
+  backgrounds · Kirkjufell © salomon10 (CC BY 2.0) · Luxor © Marcos Leal (CC BY-SA 3.0) · Cardrona © Wildman NZ (CC BY-SA 4.0) · via Wikimedia Commons
+</footer>
 </body>
 </html>
