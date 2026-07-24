@@ -129,6 +129,7 @@
   <button id="jumpbtn" aria-label="jump" style="display:none;position:absolute;bottom:26px;left:calc(50% + 14px);z-index:6;pointer-events:auto;width:78px;height:78px;border-radius:50%;background:rgba(10,16,26,.5);border:1px solid rgba(255,220,150,.5);color:#ffe6b0;font-size:11px;letter-spacing:.16em;align-items:center;justify-content:center">JUMP</button>
 
   <button id="mute" aria-label="toggle sound" title="sound on / off" style="position:absolute;top:16px;right:18px;z-index:6;pointer-events:auto;width:34px;height:34px;border-radius:50%;background:rgba(10,16,26,.5);border:1px solid rgba(150,200,255,.4);color:#d6ecff;font-size:15px;line-height:30px;text-align:center;cursor:pointer;padding:0">🔊</button>
+  <audio id="bgm" loop preload="auto" src="assets/soundtrack.mp3"></audio>
 
   <!-- finish / totality overlay -->
   <div id="finish" style="position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center">
@@ -648,7 +649,7 @@
   function sfxLevelWin(){ var n=[659,784,988,1319,1568]; for(var i=0;i<n.length;i++) tone(n[i],0.26,'triangle',0.18,i*0.11); noiseHit(0.5,'highpass',3000,0.15); }
   function sfxFail(){ var n=[392,330,262]; for(var i=0;i<n.length;i++) tone(n[i],0.32,'sawtooth',0.16,i*0.17); }
   function sfxBull(){ tone(880,0.1,'triangle',0.18,0,1320); tone(1320,0.18,'triangle',0.16,0.09); }
-  document.getElementById('mute').addEventListener('click',function(){ AUD.muted=!AUD.muted; this.textContent=AUD.muted?'🔇':'🔊'; if(AUD.master) AUD.master.gain.value=AUD.muted?0:0.85; });
+  document.getElementById('mute').addEventListener('click',function(){ AUD.muted=!AUD.muted; this.textContent=AUD.muted?'🔇':'🔊'; if(AUD.master) AUD.master.gain.value=AUD.muted?0:0.85; var _b=document.getElementById('bgm'); if(_b) _b.muted=AUD.muted; }); // one toggle mutes both game SFX and music
 
   // ============================================================ state
   var SIM_DIFF={key:'sim',spd:1,hearts:Infinity,ballInterval:1e9,ballCount:0,ballLat:0,targetR:22,label:'free ride'};
@@ -697,6 +698,7 @@
     reset(); S.started=true;
     document.getElementById('start').style.display='none';
     initAudio(); if(AUD.ctx&&AUD.ctx.state==='suspended') AUD.ctx.resume();
+    var _bgm=document.getElementById('bgm'); if(_bgm&&_bgm.paused){ _bgm.volume=0.45; _bgm.muted=AUD.muted; _bgm.play().catch(function(){}); } // looping soundtrack, starts on the first play gesture
     if(mode==='adv') toast(diff.label.split(' ')[0].toUpperCase()+' — DODGE, THEN STICK THE LANDING',2.4);
   }
   function showMenu(){ S.started=false; S.finished=false; S.failed=false;
