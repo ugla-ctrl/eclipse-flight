@@ -624,16 +624,9 @@
 
   // ============================================================ procedural audio engine
   var AUD={ctx:null,master:null,ready:false,muted:false,noiseBuf:null,windG:null,carveG:null,carveF:null,droneG:null,shimG:null};
-  function initAudio(){ if(AUD.ctx) return;
-    try{ var ctx=new (window.AudioContext||window.webkitAudioContext)(); AUD.ctx=ctx;
-      var master=ctx.createGain(); master.gain.value=AUD.muted?0:0.85; master.connect(ctx.destination); AUD.master=master;
-      var buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),d=buf.getChannelData(0); for(var i=0;i<d.length;i++) d[i]=Math.random()*2-1; AUD.noiseBuf=buf;
-      var wn=ctx.createBufferSource(); wn.buffer=buf; wn.loop=true; var wf=ctx.createBiquadFilter(); wf.type='lowpass'; wf.frequency.value=480; var wg=ctx.createGain(); wg.gain.value=0; wn.connect(wf); wf.connect(wg); wg.connect(master); wn.start(); AUD.windG=wg;
-      var cn=ctx.createBufferSource(); cn.buffer=buf; cn.loop=true; var cf=ctx.createBiquadFilter(); cf.type='bandpass'; cf.frequency.value=1500; cf.Q.value=0.7; var cg=ctx.createGain(); cg.gain.value=0; cn.connect(cf); cf.connect(cg); cg.connect(master); cn.start(); AUD.carveG=cg; AUD.carveF=cf;
-      var o1=ctx.createOscillator(); o1.type='sine'; o1.frequency.value=55; var o2=ctx.createOscillator(); o2.type='sine'; o2.frequency.value=55.4; var dg=ctx.createGain(); dg.gain.value=0; o1.connect(dg); o2.connect(dg); dg.connect(master); o1.start(); o2.start(); AUD.droneG=dg;
-      var sh=ctx.createOscillator(); sh.type='triangle'; sh.frequency.value=784; var sg=ctx.createGain(); sg.gain.value=0; sh.connect(sg); sg.connect(master); sh.start(); AUD.shimG=sg;
-      AUD.ready=true;
-    }catch(e){ AUD.ctx=null; } }
+  // procedural SFX engine intentionally disabled — this build plays ONLY the Mt. Eden music track (#bgm),
+  // like the Iceland/Egypt sims. Left as a no-op so every guarded sfx*/ramp call site stays silently inert.
+  function initAudio(){ }
   function tone(freq,dur,type,vol,delay,glide){ if(!AUD.ready) return; var ctx=AUD.ctx,t=ctx.currentTime+(delay||0);
     var o=ctx.createOscillator(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t); if(glide) o.frequency.exponentialRampToValueAtTime(Math.max(1,glide),t+dur);
     var g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.18,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
