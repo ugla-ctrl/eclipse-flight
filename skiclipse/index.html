@@ -3,19 +3,19 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-<title>Eclipse Descent — Alpine Totality Ski</title>
+<title>NEW ZEALAND ECLIPSE 2028 · Alpine Totality Ski</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a1024'/%3E%3Cg transform='rotate(24 16 18)'%3E%3Crect x='14.3' y='3.5' width='3.4' height='25.5' rx='1.7' fill='%23ffcf7a'/%3E%3C/g%3E%3Cg transform='rotate(-24 16 18)'%3E%3Crect x='14.3' y='3.5' width='3.4' height='25.5' rx='1.7' fill='%23e8ecf4'/%3E%3C/g%3E%3Ccircle cx='25' cy='6.8' r='3.2' fill='none' stroke='%23fff2cc' stroke-width='1.6'/%3E%3C/svg%3E"/>
-<meta name="description" content="Carve a high alpine face as the moon swallows the sun. Free-ride to totality, or take on Adventure: dodge rocks and snowballs and stick the target landing."/>
+<meta name="description" content="Ski a Cardrona face as totality sweeps New Zealand on 22 July 2028. Free-ride into the eclipse, or take on Adventure and stick the target landing."/>
 <meta property="og:type" content="website"/>
-<meta property="og:title" content="Eclipse Descent"/>
-<meta property="og:description" content="Carve a high alpine face as the moon swallows the sun — and ride inside totality, again and again."/>
+<meta property="og:title" content="NEW ZEALAND ECLIPSE 2028"/>
+<meta property="og:description" content="Ski a Cardrona face as the moon swallows the sun. Ride inside totality over New Zealand on 22 July 2028, again and again."/>
 <meta property="og:url" content="https://eclipseflight.com/skiclipse/"/>
 <meta property="og:image" content="https://eclipseflight.com/skiclipse/assets/og.jpg"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Eclipse Descent"/>
-<meta name="twitter:description" content="Carve a high alpine face as the moon swallows the sun — and ride inside totality, again and again."/>
+<meta name="twitter:title" content="NEW ZEALAND ECLIPSE 2028"/>
+<meta name="twitter:description" content="Ski a Cardrona face as the moon swallows the sun. Ride inside totality over New Zealand on 22 July 2028, again and again."/>
 <meta name="twitter:image" content="https://eclipseflight.com/skiclipse/assets/og.jpg"/>
 <style>
   html,body{margin:0;height:100%;background:#0a0e18;overflow:hidden;font-family:'Space Grotesk',system-ui,sans-serif}
@@ -50,6 +50,24 @@
     font-size:12px;letter-spacing:.22em;text-transform:uppercase;background:rgba(10,16,26,.55);border:1px solid #ffe6b0;color:#ffe6b0}
   #fail .ovbtn{border-color:#ff8a7a;color:#ff8a7a}
   .ovrow{display:flex;gap:14px;margin-top:24px;justify-content:center}
+  /* email capture popup */
+  #capModal{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+    background:rgba(6,9,16,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);pointer-events:auto;padding:20px}
+  #capCard{width:min(420px,92vw);background:rgba(14,22,36,.94);border:1px solid rgba(150,200,255,.35);
+    border-radius:18px;padding:32px 28px 24px;color:#d6ecff;text-align:center;position:relative;box-shadow:0 26px 74px rgba(0,0,0,.62)}
+  #capClose{position:absolute;top:10px;right:14px;width:30px;height:30px;border:0;background:transparent;color:#7fa6cc;font-size:22px;line-height:1;cursor:pointer}
+  #capClose:hover{color:#e8f1ff}
+  .cap-h{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:31px;color:#f2f6ff;line-height:1.08}
+  .cap-p{margin-top:10px;font-size:13px;color:#9fb4d2;line-height:1.5}
+  .cap-in{width:100%;box-sizing:border-box;margin-top:11px;padding:12px 14px;border-radius:10px;background:rgba(8,12,22,.72);
+    border:1px solid rgba(150,200,255,.3);color:#eaf2ff;font-family:inherit;font-size:14px}
+  .cap-in::placeholder{color:#6d84a4}
+  .cap-in:focus{outline:none;border-color:#ffe6b0}
+  .cap-btn{width:100%;margin-top:14px;padding:13px;border-radius:100px;border:1px solid #ffe6b0;background:rgba(255,230,176,.12);
+    color:#ffe6b0;font-family:inherit;font-size:12px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:background .15s,transform .12s}
+  .cap-btn:hover{background:rgba(255,230,176,.22);transform:translateY(-1px)}
+  .cap-note{margin-top:12px;font-size:10px;color:#6d84a4;letter-spacing:.04em;min-height:13px}
+  .cap-ok{color:#7fe0a0}
   @media (max-width:680px),(pointer:coarse){
     .ovbtn{display:inline-block}
     .kbd-hint{display:none!important}
@@ -149,8 +167,8 @@
 
   <!-- start / mode menu -->
   <div id="start" style="position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,22,.82);text-align:center">
-    <div id="s-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:62px;color:#f2f6ff;letter-spacing:.01em">Eclipse Descent</div>
-    <div id="s-sub" style="margin-top:12px;color:#b8c8e0;font-size:14px;max-width:44ch;line-height:1.5">choose your line down the mountain — either way, the moon is swallowing the sun</div>
+    <div id="s-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:56px;color:#f2f6ff;letter-spacing:.07em;text-transform:uppercase">New Zealand Eclipse 2028</div>
+    <div id="s-sub" style="margin-top:12px;color:#b8c8e0;font-size:14px;max-width:46ch;line-height:1.5">ski a Cardrona face as the moon swallows the sun · totality sweeps New Zealand on 22 July 2028</div>
     <div id="mode-row" style="margin-top:30px;display:flex;gap:22px;justify-content:center">
       <button class="modecard" id="m-sim"><div class="mc-ico">❄</div><div class="mc-name">Free Ride</div><div class="mc-desc">roam the open mountain — totality sweeps over in real time, again and again</div></button>
       <button class="modecard" id="m-adv"><div class="mc-ico">🎯</div><div class="mc-name">Adventure</div><div class="mc-desc">dodge rocks &amp; snowballs, then stick the target landing</div></button>
@@ -162,6 +180,21 @@
       <button class="diffbtn" data-d="black">Black</button>
     </div>
     <div id="s-hint" style="margin-top:26px;font-size:11px;color:#6d84a4;letter-spacing:.12em">←→ carve · ↑ tuck · space jump · ↓ check speed · sound on</div>
+  </div>
+
+  <!-- email capture popup (australasiaeclipse.com-style) -->
+  <div id="capModal">
+    <div id="capCard">
+      <button id="capClose" type="button" aria-label="close">×</button>
+      <div class="cap-h">Chase totality with us</div>
+      <div class="cap-p">The Moon crosses New Zealand on 22 July 2028. Get the maps, tools and trips as we build toward it.</div>
+      <form id="capForm">
+        <input class="cap-in" id="capName" type="text" placeholder="First name (optional)" autocomplete="given-name"/>
+        <input class="cap-in" id="capEmail" type="email" required placeholder="you@email.com" autocomplete="email"/>
+        <button class="cap-btn" id="capSubmit" type="submit">Keep me posted</button>
+      </form>
+      <div class="cap-note" id="capNote">No spam. Just the 2028 eclipse.</div>
+    </div>
   </div>
 </div>
 
@@ -726,6 +759,47 @@
   if(isTouch) document.getElementById('s-hint').textContent='drag left / right to steer · hold TUCK for speed · tap JUMP over rocks';
   [['fin-again',function(){reset();}],['fin-menu',showMenu],['fail-again',function(){reset();}],['fail-menu',showMenu]]
     .forEach(function(b){ var el=document.getElementById(b[0]); if(el) el.addEventListener('click',function(e){ e.stopPropagation(); b[1](); }); });
+
+  // ------------------------------------------------------------ email capture (australasiaeclipse.com-style popup)
+  // Pops once per visit, shortly after load, over the start screen BEFORE the first run. Closing quiets it for the
+  // visit; a real signup silences it for good. Insert-only Supabase RLS: plain INSERT, treat HTTP 409 (duplicate
+  // email) as success. See decision-supabase-signup-backend.
+  (function(){
+    var SB_URL='https://qmxhsendoepqeyeolzil.supabase.co';
+    var SB_KEY='sb_publishable_qU4HH0buJWQW3_RJk3QlYg_5r84ZfdP';
+    var SEEN='nze2028capseen', MEMBER='nze2028member';
+    var modal=document.getElementById('capModal'), form=document.getElementById('capForm');
+    var note=document.getElementById('capNote'), nameEl=document.getElementById('capName'), emailEl=document.getElementById('capEmail');
+    var shown=false, done=false;
+    function getL(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+    function getS(k){ try{return sessionStorage.getItem(k);}catch(e){return null;} }
+    function setL(k){ try{localStorage.setItem(k,'1');}catch(e){} }
+    function setSS(k){ try{sessionStorage.setItem(k,'1');}catch(e){} }
+    function openCap(){ shown=true; setSS(SEEN); modal.style.display='flex'; setTimeout(function(){ try{emailEl.focus();}catch(e){} },60); }
+    function closeCap(){ modal.style.display='none'; }
+    document.getElementById('capClose').addEventListener('click',closeCap);
+    modal.addEventListener('click',function(e){ if(e.target===modal) closeCap(); });
+    addEventListener('keydown',function(e){ if(e.code==='Escape'&&modal.style.display==='flex'){ e.stopPropagation(); closeCap(); } });
+    function succeed(){ done=true; setL(MEMBER); setSS(SEEN);
+      note.textContent='You are on the list. See you under totality.'; note.className='cap-note cap-ok';
+      form.style.display='none'; setTimeout(closeCap,2200); }
+    form.addEventListener('submit',function(e){ e.preventDefault(); if(done){ closeCap(); return; }
+      var email=(emailEl.value||'').trim(); if(!email||email.indexOf('@')<1){ try{emailEl.focus();}catch(_){}; return; }
+      var nm=(nameEl.value||'').trim();
+      note.textContent='Saving...'; note.className='cap-note';
+      var body={ email:email, source:'skiclipse', referrer:(document.referrer||'').slice(0,300), user_agent:(navigator.userAgent||'').slice(0,300) };
+      if(nm) body.name=nm;
+      fetch(SB_URL+'/rest/v1/email_signups',{ method:'POST',
+        headers:{ 'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=minimal' },
+        body:JSON.stringify(body) })
+      .then(function(r){ if(r.ok||r.status===409){ succeed(); }
+        else{ note.textContent='That did not go through. Try again?'; note.className='cap-note'; } })
+      .catch(function(){ note.textContent='Network hiccup. Try again in a moment.'; note.className='cap-note'; });
+    });
+    // fire before the game starts: once per visit, shortly after load, unless already a member or mid-run
+    function maybePop(){ if(shown||done||getL(MEMBER)||getS(SEEN)) return; if(S&&S.started) return; openCap(); }
+    setTimeout(maybePop, 700);
+  })();
 
   // ============================================================ eclipse driver
   var now=0;
