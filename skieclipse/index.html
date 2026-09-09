@@ -113,11 +113,21 @@
     #finish-title,#fail-title{font-size:34px!important}
   }
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Space+Grotesk:wght@300;400;500&display=swap');
+  /* --- cross-site nav: Eclipse Flight hub + this eclipse's year site --- */
+  #efnav{position:absolute;top:calc(12px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));z-index:15;display:flex;flex-direction:column;gap:7px;font-family:'Space Grotesk',system-ui,sans-serif}
+  #efnav a{pointer-events:auto;display:inline-flex;align-items:center;width:-moz-fit-content;width:fit-content;padding:7px 13px;border-radius:100px;background:rgba(10,14,22,.55);border:1px solid rgba(255,255,255,.22);color:#e8edf6;text-decoration:none;font-size:10px;letter-spacing:.16em;text-transform:uppercase;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);transition:border-color .2s,color .2s,background .2s,transform .12s;white-space:nowrap}
+  #efnav a:hover,#efnav a:focus-visible{border-color:#ffcf7a;color:#ffcf7a;background:rgba(10,14,22,.75);transform:translateY(-1px);outline:none}
+  @media (max-width:680px){#efnav a{font-size:9px;padding:6px 11px;letter-spacing:.12em}}
 </style>
 </head>
 <body>
 <div id="wrap">
   <canvas id="c" tabindex="0"></canvas>
+  <!-- cross-site navigation: back to the Eclipse Flight hub + this eclipse's year site -->
+  <nav id="efnav" aria-label="Eclipse Flight navigation">
+    <a href="https://eclipseflight.com/">◐&nbsp;Eclipse Flight</a>
+    <a href="https://australasiaeclipse.com/">New Zealand 2028&nbsp;↗</a>
+  </nav>
   <div id="speedlines"></div>
   <div id="flash"></div>
 
