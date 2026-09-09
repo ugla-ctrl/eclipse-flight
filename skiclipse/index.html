@@ -170,7 +170,7 @@
     <div id="s-title" style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:56px;color:#f2f6ff;letter-spacing:.07em;text-transform:uppercase">New Zealand Eclipse 2028</div>
     <div id="s-sub" style="margin-top:12px;color:#b8c8e0;font-size:14px;max-width:46ch;line-height:1.5">ski a Cardrona face as the moon swallows the sun · totality sweeps New Zealand on 22 July 2028</div>
     <div id="mode-row" style="margin-top:30px;display:flex;gap:22px;justify-content:center">
-      <button class="modecard" id="m-sim"><div class="mc-ico">❄</div><div class="mc-name">Free Ride</div><div class="mc-desc">roam the open mountain — totality sweeps over in real time, again and again</div></button>
+      <button class="modecard" id="m-sim"><div class="mc-ico">❄</div><div class="mc-name">Free Ride</div><div class="mc-desc">roam the open mountain · totality sweeps over in real time, again and again</div></button>
       <button class="modecard" id="m-adv"><div class="mc-ico">🎯</div><div class="mc-name">Adventure</div><div class="mc-desc">dodge rocks &amp; snowballs, then stick the target landing</div></button>
     </div>
     <div id="diff-row">
@@ -725,7 +725,7 @@
     document.getElementById('start').style.display='none';
     initAudio(); if(AUD.ctx&&AUD.ctx.state==='suspended') AUD.ctx.resume();
     var _bgm=document.getElementById('bgm'); if(_bgm&&_bgm.paused){ _bgm.volume=0.45; _bgm.muted=AUD.muted; _bgm.play().catch(function(){}); } // looping soundtrack, starts on the first play gesture
-    if(mode==='adv') toast(diff.label.split(' ')[0].toUpperCase()+' — DODGE, THEN STICK THE LANDING',2.4);
+    if(mode==='adv') toast(diff.label.split(' ')[0].toUpperCase()+' · DODGE, THEN STICK THE LANDING',2.4);
   }
   function showMenu(){ S.started=false; S.finished=false; S.failed=false;
     document.getElementById('finish').style.display='none'; document.getElementById('fail').style.display='none';
@@ -843,7 +843,7 @@
   // hard = ploughed into a rock (stop dead, tumble, dig out); soft = clipped by a snowball (knocked, keeps sliding)
   function hitObstacle(hard){ if(S.invuln>0||S.crash>0) return; sfxHit();
     S.shake=Math.min(1,S.shake+(hard?1.0:0.7)); emitSpray(S.x,S.y-0.6,S.z,0,0,hard?14:8);
-    if(hard){ S.speed=0; S.crash=1.5; toast('OUCH — STUCK',1.0); }   // rock: full stop + brief stuck, then digs out
+    if(hard){ S.speed=0; S.crash=1.5; toast('OUCH · STUCK',1.0); }   // rock: full stop + brief stuck, then digs out
     else { S.speed*=0.5; S.crash=0.45; }
     if(S.mode==='adv'){ S.hearts--; S.invuln=Math.max(S.invuln,S.crash+0.4); updateHeartsHUD(); document.getElementById('flash').style.opacity='0.6';
       if(S.hearts<=0) failRun(); else if(!hard) toast('-1 ♥',0.8); } }
