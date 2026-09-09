@@ -761,7 +761,7 @@
     .forEach(function(b){ var el=document.getElementById(b[0]); if(el) el.addEventListener('click',function(e){ e.stopPropagation(); b[1](); }); });
 
   // ------------------------------------------------------------ email capture (australasiaeclipse.com-style popup)
-  // Pops once per visit, shortly after load, over the start screen BEFORE the first run. Closing quiets it for the
+  // Pops once per visit, after ~45s of actual play (never mid Adventure-run; see popCalm). Closing quiets it for the
   // visit; a real signup silences it for good. Insert-only Supabase RLS: plain INSERT, treat HTTP 409 (duplicate
   // email) as success. See decision-supabase-signup-backend.
   (function(){
@@ -796,9 +796,16 @@
         else{ note.textContent='That did not go through. Try again?'; note.className='cap-note'; } })
       .catch(function(){ note.textContent='Network hiccup. Try again in a moment.'; note.className='cap-note'; });
     });
-    // fire before the game starts: once per visit, shortly after load, unless already a member or mid-run
-    function maybePop(){ if(shown||done||getL(MEMBER)||getS(SEEN)) return; if(S&&S.started) return; openCap(); }
-    setTimeout(maybePop, 700);
+    // fire after ~45s of ACTUAL play (counts only while a run is live). In Adventure we wait for a calm moment
+    // (run ended / menu) so the modal can't cause a wipeout; Free Ride is endless with no fail state, so it pops
+    // right at 45s. Once per visit; a member or an already-seen visit is skipped.
+    var playSecs=0;
+    function popCalm(){ return (!S.started||S.finished||S.failed||S.mode==='sim'); }
+    setInterval(function(){
+      if(S&&S.started&&!S.finished&&!S.failed) playSecs++;
+      if(shown||done||getL(MEMBER)||getS(SEEN)) return;
+      if(playSecs>=45 && popCalm()) openCap();
+    },1000);
   })();
 
   // ============================================================ eclipse driver
